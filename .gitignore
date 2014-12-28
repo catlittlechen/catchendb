@@ -1,0 +1,5 @@
+log/*
+data/*
+bin/main
+bin/main.tar.gz
+src/main/version.go

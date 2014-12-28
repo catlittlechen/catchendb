@@ -1,0 +1,12 @@
+<config>
+	<server>
+		<bindaddr>0.0.0.0:13570</bindaddr>
+		<path>/ccdb</path>
+	</server>
+
+	<data>
+		<datapath>../data/</datapath>
+		<dataname>ccdb.zjm</dataname>
+		<datatimes>1800</datatimes>
+	</data>
+</config>

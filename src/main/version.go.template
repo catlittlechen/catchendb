@@ -1,0 +1,3 @@
+package main
+
+const VERSION = "GITINFO:" + "$GIT_VERSION"
