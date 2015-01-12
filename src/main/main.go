@@ -2,7 +2,6 @@ package main
 
 import (
 	"catchendb/src/config"
-	"catchendb/src/logic"
 	"catchendb/src/util"
 	"flag"
 	"fmt"
@@ -32,8 +31,6 @@ func handleServer(w http.ResponseWriter, r *http.Request) {
 
 func mainloop() {
 
-	logic.AutoSaveData()
-
 	http.HandleFunc(config.GlobalConf.Server.Path, handleServer)
 	err := http.ListenAndServe(config.GlobalConf.Server.BindAddr, nil)
 	if err != nil {
@@ -52,7 +49,7 @@ func Init() bool {
 	}
 	syscall.Umask(0)
 	os.Chdir(path.Dir(os.Args[0]))
-	return config.LoadConf(*configFile) && logic.LoadData() && true
+	return config.LoadConf(*configFile) && true
 }
 
 func main() {
