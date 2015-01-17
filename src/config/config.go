@@ -11,6 +11,7 @@ import (
 type xmlServer struct {
 	BindAddr string `xml:"bindaddr"`
 	Path     string `xml:"path"`
+	TempPath string `xml:"temppath"`
 }
 
 type xmlData struct {

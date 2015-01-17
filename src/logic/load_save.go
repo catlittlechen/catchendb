@@ -1,4 +1,4 @@
-package store
+package logic 
 
 import (
 	"catchendb/src/config"
