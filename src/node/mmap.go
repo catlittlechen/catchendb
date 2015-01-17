@@ -6,6 +6,11 @@ import (
 	"syscall"
 )
 
+const (
+	minMmapSize = 1 << 22
+	mmapBranch  = 1 << 30
+)
+
 var (
 	mmapLock sync.Mutex
 )
@@ -26,17 +31,17 @@ func mmapSize(size int) int {
 	return size
 }
 
-func mmap(size int) error {
+func mmap(size int) ([]byte, error) {
 	mmapLock.Lock()
 	defer mmapLock.Unlock()
-	var err error
 	size = mmapSize(size)
-	
-	dataMap, err = syscall.Mmap(int(tempfile.Fd()), 0, size, syscall.PROT_READ, syscall.MAP_SHARED)
-	if err != nil {
-		return err
-	}
-	return nil
+	dataMap, err := syscall.Mmap(-1, 0, size, 0, 0)
+	return dataMap, nil
+}
+
+func munmap(dataMap []byte) error {
+	err := syscall.Munmap(dataMap)
+	return err
 }
 
 func init() {
