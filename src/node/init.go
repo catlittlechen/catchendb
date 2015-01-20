@@ -5,7 +5,10 @@ import (
 )
 
 var (
-	pageSize      int
+	pageSize int
+)
+
+const (
 	maxAlloacSize = 0xFFFFFFF
 )
 
