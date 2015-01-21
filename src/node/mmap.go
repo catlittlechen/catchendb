@@ -17,11 +17,9 @@ var (
 
 func mmapSize(size int) int {
 	if size <= minMmapSize {
-		return minMmapSize
-	} else if size < mmapBranch {
-		size *= 2
-	} else {
-		size += mmapBranch
+		size = minMmapSize
+	} else if size > mmapBranch {
+		size = mmapBranch
 	}
 
 	if size%pageSize != 0 {
@@ -34,9 +32,8 @@ func mmapSize(size int) int {
 func mmap(size int) ([]byte, error) {
 	mmapLock.Lock()
 	defer mmapLock.Unlock()
-	size = mmapSize(size)
 	dataMap, err := syscall.Mmap(-1, 0, size, 0, 0)
-	return dataMap, nil
+	return dataMap, err
 }
 
 func munmap(dataMap []byte) error {

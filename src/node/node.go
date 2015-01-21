@@ -1,13 +1,12 @@
 package node
 
 import (
+	"bytes"
 	"unsafe"
 )
 
 const (
 	nodePageSize = uint32(unsafe.Sizeof(nodePageElem{}))
-	NODE_RED     = 0
-	NODE_BLACK   = 1
 
 	NODE_KEY_SMALL = -1
 	NODE_KEY_EQUAL = 0
@@ -92,6 +91,14 @@ func (nr *nodeRoot) search(key string) (node *nodePageElem) {
 		}
 	}
 	return nil
+}
+
+func (nr *nodeRoot) searchNode(key string) (value string) {
+	node := nr.search(key)
+	if node != nil {
+		return string(node.value())
+	}
+	return
 }
 
 func (nr *nodeRoot) leftRotate(node *nodePageElem) {
@@ -370,10 +377,11 @@ func (nr *nodeRoot) delet(node *nodePageElem) {
 	//释放空间
 }
 
-func (nr *nodeRoot) deleteNode(key string) {
+func (nr *nodeRoot) deleteNode(key string) bool {
 	if node := nr.search(key); node != nil {
 		nr.delet(node)
 	}
+	return true
 }
 
 type nodePageElem struct {
@@ -402,10 +410,16 @@ func (n *nodePageElem) setBlack() {
 }
 
 func (n *nodePageElem) compare(node *nodePageElem) bool {
-	return true
+	return bytes.Compare(n.key(), node.key()) < 0
 }
 
 func (n *nodePageElem) compareKey(key string) int {
+	ok := bytes.Compare(n.key(), []byte(key))
+	if ok < 0 {
+		return NODE_KEY_SMALL
+	} else if ok > 0 {
+		return NODE_KEY_LARGE
+	}
 	return NODE_KEY_EQUAL
 }
 
@@ -420,10 +434,12 @@ func (n *nodePageElem) value() []byte {
 }
 
 func (n *nodePageElem) setKey(key string) bool {
+	//TODO
 	return true
 }
 
 func (n *nodePageElem) setValue(value string) bool {
+	//TODO
 	return true
 }
 

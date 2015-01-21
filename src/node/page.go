@@ -5,7 +5,7 @@ import (
 )
 
 type page struct {
-	id    uint64
+	id    pid
 	flag  uint8
 	count uint16
 	ptr   uintptr
@@ -25,7 +25,23 @@ func (p *page) nodePageElem() (n *nodePageElem) {
 	return
 }
 
-func (p *page) listPageElem() (l *listPageElem) {
-	l = (*listPageElem)(unsafe.Pointer(&p.ptr))
+func (p *page) pagelist() (l *pagelist) {
+	l = (*pagelist)(unsafe.Pointer(&p.ptr))
 	return
+}
+
+type pid uint64
+
+type pids []pid
+
+func (p pids) Len() int {
+	return len(p)
+}
+
+func (p pids) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+func (p pids) Less(i, j int) bool {
+	return p[i] < p[j]
 }
