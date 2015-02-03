@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	nodePageSize = uint32(unsafe.Sizeof(nodePageElem{}))
+	nodePageSize = int(unsafe.Sizeof(nodePageElem{}))
 
 	NODE_KEY_SMALL = -1
 	NODE_KEY_EQUAL = 0
@@ -218,14 +218,41 @@ func (nr *nodeRoot) insert(node *nodePageElem) {
 }
 
 func (nr *nodeRoot) createNode(key, value string, parent, lChild, rChild *nodePageElem) (node *nodePageElem) {
-	return
+	size := pageHeaderSize + nodePageSize + len(key) + len(value)
+	page := globalPageList.allocate(int(size/pageSize) + 1)
+	if page != nil {
+		node = page.nodePageElem()
+		node.lChild = lChild
+		node.rChild = rChild
+		node.parent = parent
+		node.keySize = len(key)
+		node.valueSize = len(value)
+		node.setKeyValue(key, value)
+	}
+
+	return nil
 }
 
 func (nr *nodeRoot) insertNode(key, value string) bool {
 
 	node := nr.search(key)
-	if node != nil {
-		return node.setValue(value)
+	if node != nil && !node.setValue(value) {
+		nodeTmp := nr.createNode(key, value, node.parent, node.lChild, node.rChild)
+		if node == nil {
+			return false
+		} else {
+			node.lChild.parent = nodeTmp
+			node.rChild.parent = nodeTmp
+			if node.parent.lChild == node {
+				node.parent.lChild = nodeTmp
+			} else {
+				node.parent.rChild = nodeTmp
+			}
+			if node.isRed() {
+				nodeTmp.setRed()
+			}
+			node.free()
+		}
 	}
 	if node = nr.createNode(key, value, nil, nil, nil); node != nil {
 		nr.insert(node)
@@ -344,8 +371,7 @@ func (nr *nodeRoot) delet(node *nodePageElem) {
 		if color == false {
 			nr.deleteFixTree(child, parent)
 		}
-		//TODO:
-		//释放空间
+		node.free()
 		return
 	}
 	if node.lChild != nil {
@@ -373,8 +399,7 @@ func (nr *nodeRoot) delet(node *nodePageElem) {
 	if color == false {
 		nr.deleteFixTree(child, parent)
 	}
-	//TODO:
-	//释放空间
+	node.free()
 }
 
 func (nr *nodeRoot) deleteNode(key string) bool {
@@ -385,12 +410,13 @@ func (nr *nodeRoot) deleteNode(key string) bool {
 }
 
 type nodePageElem struct {
+	ptr       *page
 	colorType bool
 	lChild    *nodePageElem
 	rChild    *nodePageElem
 	parent    *nodePageElem
-	keySize   uint32
-	valueSize uint32
+	keySize   int
+	valueSize int
 }
 
 func (n *nodePageElem) isRed() bool {
@@ -433,14 +459,26 @@ func (n *nodePageElem) value() []byte {
 	return buf[nodePageSize+n.keySize : nodePageSize+n.keySize+n.valueSize]
 }
 
-func (n *nodePageElem) setKey(key string) bool {
-	//TODO
+func (n *nodePageElem) setKeyValue(key, value string) bool {
+	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(n))
+	copy(buf[nodePageSize:nodePageSize+n.keySize], []byte(key))
+	copy(buf[nodePageSize+n.keySize:nodePageSize+n.keySize+n.valueSize], []byte(value))
 	return true
 }
 
 func (n *nodePageElem) setValue(value string) bool {
-	//TODO
-	return true
+	size := pageHeaderSize + nodePageSize + n.keySize + len(value)
+	if size < int(n.ptr.count)*pageSize {
+		buf := (*[maxAlloacSize]byte)(unsafe.Pointer(n))
+		n.valueSize = len(value)
+		copy(buf[nodePageSize+n.keySize:nodePageSize+n.keySize+n.valueSize], []byte(value))
+		return true
+	}
+	return false
+}
+
+func (n *nodePageElem) free() {
+	globalPageList.free(n.ptr)
 }
 
 func init() {

@@ -21,9 +21,10 @@ type xmlData struct {
 }
 
 type xmlConfig struct {
-	XMLName xml.Name  `xml:"config"`
-	Server  xmlServer `xml:"server"`
-	Data    xmlData   `xml:"data"`
+	XMLName  xml.Name  `xml:"config"`
+	Server   xmlServer `xml:"server"`
+	Data     xmlData   `xml:"data"`
+	PageSize int       `xml:"pagesize"`
 }
 
 var GlobalConf xmlConfig

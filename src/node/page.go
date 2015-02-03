@@ -12,21 +12,12 @@ type page struct {
 }
 
 const (
-	nodePageFlag = 0x01
-	listPageFlag = 0x02
-)
-
-const (
 	pageHeaderSize = int(unsafe.Offsetof(((*page)(nil)).ptr))
 )
 
 func (p *page) nodePageElem() (n *nodePageElem) {
 	n = (*nodePageElem)(unsafe.Pointer(&p.ptr))
-	return
-}
-
-func (p *page) pagelist() (l *pagelist) {
-	l = (*pagelist)(unsafe.Pointer(&p.ptr))
+	n.ptr = p
 	return
 }
 

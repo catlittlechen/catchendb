@@ -1,7 +1,7 @@
 package node
 
 import (
-	"os"
+	"catchendb/src/config"
 )
 
 var (
@@ -13,7 +13,6 @@ const (
 )
 
 func init() {
-	pageSize = os.Getpagesize()
 }
 
 func Put(key, value string) bool {
@@ -29,5 +28,6 @@ func Del(key string) bool {
 }
 
 func Init() bool {
+	pageSize = config.GlobalConf.PageSize
 	return true
 }
