@@ -2,6 +2,8 @@ package node
 
 import (
 	"bytes"
+	"encoding/json"
+	"sync"
 	"unsafe"
 )
 
@@ -14,11 +16,36 @@ const (
 )
 
 var (
-	treeRoot *nodeRoot
+	treeRoot    *nodeRoot
+	outputMutex sync.Mutex
+	channel     chan []byte
 )
+
+type data struct {
+	Key   string "json:`key`"
+	Value string "json:`value`"
+}
 
 type nodeRoot struct {
 	node *nodePageElem
+}
+
+func (nr *nodeRoot) output(channe chan []byte) {
+	channel = channe
+	nr.preorder(nr.node)
+}
+
+func (nr *nodeRoot) preorder(node *nodePageElem) {
+
+	if node != nil {
+		d := new(data)
+		d.Key = string(node.key())
+		d.Value = string(node.value())
+		datastr, _ := json.Marshal(d)
+		channel <- datastr
+		go nr.preorder(node.lChild)
+		go nr.preorder(node.rChild)
+	}
 }
 
 func (nr *nodeRoot) first(nodeIndex *nodePageElem) (node *nodePageElem) {

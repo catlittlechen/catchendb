@@ -27,6 +27,10 @@ func Del(key string) bool {
 	return treeRoot.deleteNode(key)
 }
 
+func OutPut(channel chan []byte) {
+	treeRoot.output(channel)
+}
+
 func Init() bool {
 	pageSize = config.GlobalConf.PageSize
 	return true
