@@ -27,8 +27,8 @@ func Del(key string) bool {
 	return treeRoot.deleteNode(key)
 }
 
-func OutPut(channel chan []byte) {
-	treeRoot.output(channel)
+func OutPut(channel chan []byte, sign []byte) {
+	treeRoot.output(channel, sign)
 }
 
 func Init() bool {

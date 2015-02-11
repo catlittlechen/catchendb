@@ -30,9 +30,10 @@ type nodeRoot struct {
 	node *nodePageElem
 }
 
-func (nr *nodeRoot) output(channe chan []byte) {
+func (nr *nodeRoot) output(channe chan []byte, sign []byte) {
 	channel = channe
 	nr.preorder(nr.node)
+	channel <- sign
 }
 
 func (nr *nodeRoot) preorder(node *nodePageElem) {
@@ -43,8 +44,8 @@ func (nr *nodeRoot) preorder(node *nodePageElem) {
 		d.Value = string(node.value())
 		datastr, _ := json.Marshal(d)
 		channel <- datastr
-		go nr.preorder(node.lChild)
-		go nr.preorder(node.rChild)
+		nr.preorder(node.lChild)
+		nr.preorder(node.rChild)
 	}
 }
 
