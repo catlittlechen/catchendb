@@ -2,24 +2,13 @@ package store
 
 import (
 	"bytes"
-	"github.com/cupcake/rdb"
+	"compress/zlib"
 )
 
-import lgd "code.google.com/p/log4go"
-
-func encode(obj interface{}) []byte {
+func encode(obj []byte) []byte {
 	var buf bytes.Buffer
-	robj := rdb.NewEncoder(&buf)
-
-	switch v := obj.(type) {
-	case []byte:
-		robj.EncodeType(rdb.TypeString)
-		robj.EncodeString(v)
-	default:
-		lgd.Error("invalid type %T", obj)
-		return nil
-	}
-
-	robj.EncodeDumpFooter()
+	w := zlib.NewWriter(&buf)
+	w.Write(obj)
+	w.Close()
 	return buf.Bytes()
 }
