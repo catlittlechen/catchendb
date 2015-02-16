@@ -23,6 +23,7 @@ type xmlData struct {
 type xmlConfig struct {
 	XMLName  xml.Name  `xml:"config"`
 	Server   xmlServer `xml:"server"`
+	Log      string    `xml:"log"`
 	Data     xmlData   `xml:"data"`
 	PageSize int       `xml:"pagesize"`
 }

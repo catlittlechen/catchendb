@@ -4,9 +4,13 @@
 		<path>/ccdb</path>
 	</server>
 
+	<log>../etc/log.xml</log>
+
 	<data>
 		<datapath>../data/</datapath>
 		<dataname>ccdb.zjm</dataname>
-		<datatimes>1800</datatimes>
+		<datatimes>60</datatimes>
 	</data>
+
+	<pagesize>1024</pagesize>
 </config>

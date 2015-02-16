@@ -7,6 +7,8 @@ import (
 	"unsafe"
 )
 
+import lgd "code.google.com/p/log4go"
+
 const (
 	nodePageSize = int(unsafe.Sizeof(nodePageElem{}))
 
@@ -176,7 +178,7 @@ func (nr *nodeRoot) rightRotate(node *nodePageElem) {
 func (nr *nodeRoot) insertFixTree(node *nodePageElem) {
 	var parent, grandparent, uncle *nodePageElem
 
-	for node.parent.isRed() {
+	for node.parent != nil && node.parent.isRed() {
 		parent = node.parent
 		grandparent = parent.parent
 
@@ -219,7 +221,8 @@ func (nr *nodeRoot) insertFixTree(node *nodePageElem) {
 }
 
 func (nr *nodeRoot) insert(node *nodePageElem) {
-	var nodeX, nodeY *nodePageElem
+	var nodeY *nodePageElem
+	nodeX := nr.node
 
 	for nodeX != nil {
 		nodeY = nodeX
@@ -247,6 +250,7 @@ func (nr *nodeRoot) insert(node *nodePageElem) {
 
 func (nr *nodeRoot) createNode(key, value string, parent, lChild, rChild *nodePageElem) (node *nodePageElem) {
 	size := pageHeaderSize + nodePageSize + len(key) + len(value)
+	lgd.Trace("size[%d] pagecount[%d]", size, int(size/pageSize)+1)
 	page := globalPageList.allocate(int(size/pageSize) + 1)
 	if page != nil {
 		node = page.nodePageElem()
@@ -256,6 +260,7 @@ func (nr *nodeRoot) createNode(key, value string, parent, lChild, rChild *nodePa
 		node.keySize = len(key)
 		node.valueSize = len(value)
 		node.setKeyValue(key, value)
+		return node
 	}
 
 	return nil
@@ -264,9 +269,13 @@ func (nr *nodeRoot) createNode(key, value string, parent, lChild, rChild *nodePa
 func (nr *nodeRoot) insertNode(key, value string) bool {
 
 	node := nr.search(key)
-	if node != nil && !node.setValue(value) {
+	if node != nil {
+		if node.setValue(value) {
+			return true
+		}
 		nodeTmp := nr.createNode(key, value, node.parent, node.lChild, node.rChild)
 		if node == nil {
+			lgd.Error("reset value fail!")
 			return false
 		} else {
 			node.lChild.parent = nodeTmp
@@ -285,12 +294,15 @@ func (nr *nodeRoot) insertNode(key, value string) bool {
 	if node = nr.createNode(key, value, nil, nil, nil); node != nil {
 		nr.insert(node)
 		return true
+	} else {
+		lgd.Error("createNode fail!")
+		return false
 	}
 	return false
 }
 
 func (nr *nodeRoot) deleteFixTree(node, parent *nodePageElem) {
-	for (node != nil || node.isBlack()) && node != nr.node {
+	for (node == nil || node.isBlack()) && node != nr.node {
 		if parent.lChild == node {
 			other := parent.rChild
 			if other.isRed() {

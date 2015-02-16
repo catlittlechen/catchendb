@@ -1,4 +1,5 @@
 #!/bin/bash
 
+killall ccdb
 ulimit -n 100000
-./main --config=../etc/config.xml &
+./ccdb --config=../etc/config.xml &

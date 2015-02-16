@@ -2,7 +2,7 @@ all: compile
 
 compile:
 	./githash.sh
-	cd main; go build . && install ./main ../../bin && rm ./main && cd ../../bin && tar zcvf ./main.tar.gz ./main;
+	cd main; go build . && install ./main ../../bin/ccdb && rm ./main && cd ../../bin && tar zcvf ./ccdb.tar.gz ./ccdb;
 			        
 
 clean:

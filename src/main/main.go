@@ -2,6 +2,8 @@ package main
 
 import (
 	"catchendb/src/config"
+	"catchendb/src/logic"
+	"catchendb/src/node"
 	"catchendb/src/util"
 	"flag"
 	"fmt"
@@ -9,6 +11,7 @@ import (
 	"os"
 	"path"
 	"runtime/debug"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -26,6 +29,11 @@ func handleServer(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	res := logic.LYW(r)
+	bodysize := len(res)
+	w.Header().Add(http.CanonicalHeaderKey("Content-Length"), strconv.Itoa(bodysize))
+	w.Header().Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
+	w.Write(res)
 	return
 }
 
@@ -49,7 +57,7 @@ func Init() bool {
 	}
 	syscall.Umask(0)
 	os.Chdir(path.Dir(os.Args[0]))
-	return config.LoadConf(*configFile) && true
+	return config.LoadConf(*configFile) && node.Init() && logic.LoadData() && true
 }
 
 func main() {
@@ -57,8 +65,11 @@ func main() {
 		time.Sleep(1e9)
 		return
 	}
+	lgd.LoadConfiguration(config.GlobalConf.Log)
+	os.Chmod(config.GlobalConf.Log, 0666)
 
 	lgd.Info("start")
+	logic.Init()
 	mainloop()
 	return
 }

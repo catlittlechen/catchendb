@@ -4,7 +4,7 @@
 		<type>file</type>
 		<!-- level is (:?FINEST|FINE|DEBUG|TRACE|INFO|WARNING|ERROR) -->
 		<level>FINEST</level>
-		<property name="filename">../log/notifyCP.log</property>
+		<property name="filename">../log/ccdb.log</property>
     		<!--
 	        	%T - Time (15:04:05 MST)
       			%t - Time (15:04)

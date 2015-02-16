@@ -1,5 +1,5 @@
 log/*
 data/*
-bin/main
-bin/main.tar.gz
+bin/ccdb
+bin/ccdb.tar.gz
 src/main/version.go

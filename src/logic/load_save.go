@@ -25,7 +25,7 @@ type data struct {
 func LoadData() bool {
 
 	filename := config.GlobalConf.Data.DataPath + config.GlobalConf.Data.DataName
-	lgd.Trace("start loaddata[%s] at the time[%d]", filename, time.Now().Unix)
+	lgd.Trace("start loaddata[%s] at the time[%d]", filename, time.Now().Unix())
 
 	fp, err := os.Open(filename)
 	if err != nil {
@@ -40,6 +40,9 @@ func LoadData() bool {
 	appends := false
 	for {
 		l, isPretex, err := reader.ReadLine()
+		if len(l) == 0 {
+			break
+		}
 		if err != nil {
 			lgd.Error("file[%s] read error[%s]", filename, err)
 			return false
@@ -50,15 +53,16 @@ func LoadData() bool {
 		}
 		if isPretex {
 			line = l
+			appends = true
 		} else {
 			line, err = store.Decode(l)
 			if err != nil {
-				lgd.Error("data[line] is illegal")
+				lgd.Error("data[%s] is illegal", l)
 				return false
 			}
 			err = json.Unmarshal(line, &d)
 			if err != nil {
-				lgd.Error("data[line] is illegal")
+				lgd.Error("data[%s] is illegal", line)
 				return false
 			}
 			go node.Put(d.Key, d.Value)
@@ -66,16 +70,16 @@ func LoadData() bool {
 		}
 	}
 
-	lgd.Trace("finish loaddata[%s] at the time[%d]", filename, time.Now().Unix)
+	lgd.Trace("finish loaddata[%s] at the time[%d]", filename, time.Now().Unix())
 	return true
 }
 
 func saveData() bool {
 
 	filename := config.GlobalConf.Data.DataPath + config.GlobalConf.Data.DataName + ".tmp"
-	lgd.Trace("start saveData[%s] at the time[%d]", filename, time.Now().Unix)
+	lgd.Trace("start saveData[%s] at the time[%d]", filename, time.Now().Unix())
 
-	fp, err := os.OpenFile(filename, os.O_CREATE, 0666)
+	fp, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		lgd.Error("file[%s] open fail! err[%s]", filename, err)
 		return false
@@ -93,6 +97,7 @@ func saveData() bool {
 		}
 		line = append(store.Encode(datastr), '\n')
 		_, err = fp.Write(line)
+		lgd.Debug(string(line))
 		if err != nil {
 			lgd.Error("file[%s] write fail! err[%s]", filename, err)
 			return false
@@ -105,7 +110,7 @@ func saveData() bool {
 		return false
 	}
 
-	lgd.Trace("finish saveData[%s] at the time[%d]", filename, time.Now().Unix)
+	lgd.Trace("finish saveData[%s] at the time[%d]", filename, time.Now().Unix())
 	return true
 }
 
