@@ -1,13 +1,15 @@
 package logic
 
 import (
-	"bufio"
 	"bytes"
 	"catchendb/src/config"
 	"catchendb/src/node"
 	"catchendb/src/store"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -15,6 +17,15 @@ import lgd "code.google.com/p/log4go"
 
 var (
 	outPutSign = []byte("quit")
+)
+
+var (
+	lengthData int
+)
+
+const (
+	magicKey   = "1A089524CB555F689E5E8F72CFFC54C7"
+	dataKeyLen = 10
 )
 
 type data struct {
@@ -34,28 +45,59 @@ func LoadData() bool {
 	}
 	defer fp.Close()
 
-	reader := bufio.NewReader(fp)
-	var line []byte
-	var d data
-	appends := false
-	for {
-		l, isPretex, err := reader.ReadLine()
-		if len(l) == 0 {
-			break
-		}
+	l := make([]byte, len(magicKey))
+	lens, err := fp.Read(l)
+	if err != nil && err != io.EOF {
+		lgd.Error("file[%s] read error[%s]", filename, err)
+		return false
+	} else if err == io.EOF {
+		return true
+	} else if string(l) != magicKey {
+		lgd.Error("file[%s] magicKey[%s]", filename, l)
+		return false
+	}
+
+	l = make([]byte, dataKeyLen)
+	lens, err = fp.Read(l)
+	if err != nil {
+		lgd.Error("file[%s] read error[%s]", filename, err)
+		return false
+	} else if lens != dataKeyLen {
+		lgd.Error("file[%s] read error[len is illegal]", filename)
+		return false
+	} else {
+		lengthData, err = strconv.Atoi(string(l))
 		if err != nil {
-			lgd.Error("file[%s] read error[%s]", filename, err)
+			lgd.Error("file[%s] length fail! data[%s]", filename, l)
 			return false
 		}
-		if appends {
-			l = append(line, l...)
-			appends = false
+	}
+
+	var line []byte
+	var d data
+	length := lengthData
+	lengthBool := true
+	for {
+		l = make([]byte, length)
+		lens, err = fp.Read(l)
+		if err != nil {
+			if err == io.EOF && lengthBool {
+				break
+			} else {
+				lgd.Error("file[%s] read error[%s]", filename, err)
+				return false
+			}
 		}
-		if isPretex {
-			line = l
-			appends = true
+		if lengthBool {
+			length, err = strconv.Atoi(string(l))
+			if err != nil {
+				lgd.Error("file[%s] length fail! data[%s]", filename, l)
+				return false
+			}
 		} else {
+			length = lengthData
 			line, err = store.Decode(l)
+			lgd.Debug(line)
 			if err != nil {
 				lgd.Error("data[%s] is illegal", l)
 				return false
@@ -66,8 +108,8 @@ func LoadData() bool {
 				return false
 			}
 			go node.Put(d.Key, d.Value)
-			line = []byte("")
 		}
+		lengthBool = !lengthBool
 	}
 
 	lgd.Trace("finish loaddata[%s] at the time[%d]", filename, time.Now().Unix())
@@ -89,15 +131,29 @@ func saveData() bool {
 	go node.OutPut(channel, outPutSign)
 
 	var datastr []byte
-	var line []byte
+	var datastr2 string
+	datastr2 = magicKey + fmt.Sprintf("%0"+fmt.Sprintf("%d", dataKeyLen)+"d", lengthData)
+	_, err = fp.Write([]byte(datastr2))
+	if err != nil {
+		lgd.Error("file[%s] write fail! err[%s]", filename, err)
+		return false
+	}
+	printsign := "%0" + fmt.Sprintf("%d", lengthData) + "d"
 	for {
 		datastr = <-channel
 		if bytes.Equal(datastr, outPutSign) {
 			break
 		}
-		line = append(store.Encode(datastr), '\n')
-		_, err = fp.Write(line)
-		lgd.Debug(string(line))
+		datastr = store.Encode(datastr)
+		datastr2 = fmt.Sprintf(printsign, len(datastr))
+		_, err = fp.Write([]byte(datastr2))
+		lgd.Debug(datastr2)
+		if err != nil {
+			lgd.Error("file[%s] write fail! err[%s]", filename, err)
+			return false
+		}
+		_, err = fp.Write(datastr)
+		lgd.Debug(string(datastr))
 		if err != nil {
 			lgd.Error("file[%s] write fail! err[%s]", filename, err)
 			return false
@@ -121,4 +177,8 @@ func AutoSaveData() (ret bool) {
 	}
 
 	return
+}
+
+func init() {
+	lengthData = 4
 }

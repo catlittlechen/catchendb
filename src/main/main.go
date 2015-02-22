@@ -57,7 +57,13 @@ func Init() bool {
 	}
 	syscall.Umask(0)
 	os.Chdir(path.Dir(os.Args[0]))
-	return config.LoadConf(*configFile) && node.Init() && logic.LoadData() && true
+	if config.LoadConf(*configFile) {
+		lgd.LoadConfiguration(config.GlobalConf.Log)
+		os.Chmod(config.GlobalConf.Log, 0666)
+	} else {
+		return false
+	}
+	return node.Init() && logic.LoadData() && true
 }
 
 func main() {
@@ -65,9 +71,6 @@ func main() {
 		time.Sleep(1e9)
 		return
 	}
-	lgd.LoadConfiguration(config.GlobalConf.Log)
-	os.Chmod(config.GlobalConf.Log, 0666)
-
 	lgd.Info("start")
 	logic.Init()
 	mainloop()
