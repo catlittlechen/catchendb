@@ -34,9 +34,9 @@ func lyw(r *http.Request) []byte {
 }
 
 func Init() {
-	resgiterCMD(CMD_SET, handleSet)
-	resgiterCMD(CMD_GET, handleGet)
-	resgiterCMD(CMD_DEL, handleDel)
+	resgiterCMD(CMD_SET, 3, handleSet)
+	resgiterCMD(CMD_GET, 2, handleGet)
+	resgiterCMD(CMD_DEL, 2, handleDel)
 	go AutoSaveData()
 }
 

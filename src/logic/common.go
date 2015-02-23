@@ -17,10 +17,11 @@ const (
 )
 
 const (
-	ERR_URL_PARSE = 0x100
-	ERR_CMD_MISS  = 0x101
-	ERR_CMD_SET   = 0x102
-	ERR_CMD_DEL   = 0x103
+	ERR_URL_PARSE  = 0x100
+	ERR_CMD_MISS   = 0x101
+	ERR_PARSE_MISS = 0x102
+	ERR_CMD_SET    = 0x103
+	ERR_CMD_DEL    = 0x104
 )
 
 const (
