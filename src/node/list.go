@@ -14,6 +14,7 @@ type pageNode struct {
 	pagebyte  *[mmapBranch]byte
 	freelist  *freeNode
 	freecount int
+	fid       pid
 	count     uint64
 }
 
@@ -32,7 +33,7 @@ func (pn *pageNode) allocate(n int) *page {
 				freenode.pre.next = freenode.next
 			}
 			lgd.Debug("id[%d]", id)
-			p := (*page)(unsafe.Pointer(&pn.pagebyte[int(id)*pageSize]))
+			p := (*page)(unsafe.Pointer(&pn.pagebyte[int(id-pn.fid)*pageSize]))
 			p.id = id
 			p.count = uint16(n)
 			pn.freecount -= n
@@ -120,6 +121,7 @@ func (pn *pageNode) mmap(count uint64) bool {
 	pn.freelist = new(freeNode)
 	pn.freelist.lBound = pid(count)
 	pn.freelist.rBound = pid(count + pn.count)
+	pn.fid = pid(count)
 	pn.freecount = int(pn.count)
 	return true
 }
