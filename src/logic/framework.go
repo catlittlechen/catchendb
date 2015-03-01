@@ -27,7 +27,7 @@ func mapAction(keyword url.Values) []byte {
 	return util.JsonOut(rsp)
 }
 
-func resgiterCMD(key string, argvcount int, function func(url.Values) []byte) {
+func registerCMD(key string, argvcount int, function func(url.Values) []byte) {
 	if _, ok := functionAction[key]; ok {
 		lgd.Error("duplicate key %s", key)
 		return

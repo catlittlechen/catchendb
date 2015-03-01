@@ -12,15 +12,22 @@ const (
 	maxAlloacSize = 0xFFFFFFF
 )
 
-func init() {
+func Put(key, value string, startTime, endTime int64) bool {
+	return treeRoot.insertNode(key, value, startTime, endTime)
 }
 
-func Put(key, value string) bool {
-	return treeRoot.insertNode(key, value)
-}
-
-func Get(key string) string {
+func Get(key string) (string, int64, int64) {
 	return treeRoot.searchNode(key)
+}
+
+func Set(key string, start, end int64) bool {
+	if start != 0 && !treeRoot.setStartTime(key, start) {
+		return false
+	}
+	if end != 0 && !treeRoot.setEndTime(key, end) {
+		return false
+	}
+	return true
 }
 
 func Del(key string) bool {

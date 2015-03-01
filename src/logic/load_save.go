@@ -29,8 +29,10 @@ const (
 )
 
 type data struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	StartTime int64  `json:"start"`
+	EndTime   int64  `json:"end"`
 }
 
 func LoadData() bool {
@@ -107,7 +109,7 @@ func LoadData() bool {
 				lgd.Error("data[%s] is illegal", line)
 				return false
 			}
-			go node.Put(d.Key, d.Value)
+			go node.Put(d.Key, d.Value, d.StartTime, d.EndTime)
 		}
 		lengthBool = !lengthBool
 	}
@@ -170,7 +172,7 @@ func saveData() bool {
 	return true
 }
 
-func AutoSaveData() (ret bool) {
+func autoSaveData() (ret bool) {
 	c := time.Tick(config.GlobalConf.Data.DataTime * time.Second)
 	for _ = range c {
 		saveData()

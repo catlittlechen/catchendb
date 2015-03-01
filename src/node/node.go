@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -18,14 +19,17 @@ const (
 )
 
 var (
+	nowTime     int64
 	treeRoot    *nodeRoot
 	outputMutex sync.Mutex
 	channel     chan []byte
 )
 
 type data struct {
-	Key   string "json:`key`"
-	Value string "json:`value`"
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+	StartTime int64  `json:"start"`
+	EndTime   int64  `json:"end"`
 }
 
 type nodeRoot struct {
@@ -44,6 +48,8 @@ func (nr *nodeRoot) preorder(node *nodePageElem) {
 		d := new(data)
 		d.Key = string(node.key())
 		d.Value = string(node.value())
+		d.StartTime = node.getStartTime()
+		d.EndTime = node.getEndTime()
 		datastr, _ := json.Marshal(d)
 		channel <- datastr
 		nr.preorder(node.lChild)
@@ -113,7 +119,12 @@ func (nr *nodeRoot) search(key string) (node *nodePageElem) {
 	for node != nil {
 		switch node.compareKey(key) {
 		case NODE_KEY_EQUAL:
-			return node
+			if node.isEnd() {
+				nr.delet(node)
+				return nil
+			} else {
+				return node
+			}
 		case NODE_KEY_SMALL:
 			node = node.rChild
 		case NODE_KEY_LARGE:
@@ -123,12 +134,26 @@ func (nr *nodeRoot) search(key string) (node *nodePageElem) {
 	return nil
 }
 
-func (nr *nodeRoot) searchNode(key string) (value string) {
+func (nr *nodeRoot) searchNode(key string) (value string, start, end int64) {
 	node := nr.search(key)
 	if node != nil {
-		return string(node.value())
+		return string(node.value()), node.getStartTime(), node.getEndTime()
 	}
 	return
+}
+
+func (nr *nodeRoot) setStartTime(key string, start int64) bool {
+	if node := nr.search(key); node != nil {
+		return node.setStartTime(start)
+	}
+	return false
+}
+
+func (nr *nodeRoot) setEndTime(key string, end int64) bool {
+	if node := nr.search(key); node != nil {
+		return node.setEndTime(end)
+	}
+	return false
 }
 
 func (nr *nodeRoot) leftRotate(node *nodePageElem) {
@@ -248,7 +273,7 @@ func (nr *nodeRoot) insert(node *nodePageElem) {
 	nr.insertFixTree(node)
 }
 
-func (nr *nodeRoot) createNode(key, value string, parent, lChild, rChild *nodePageElem) (node *nodePageElem) {
+func (nr *nodeRoot) createNode(key, value string, startTime, endTime int64, parent, lChild, rChild *nodePageElem) (node *nodePageElem) {
 	size := pageHeaderSize + nodePageSize + len(key) + len(value)
 	lgd.Trace("size[%d] pagecount[%d]", size, int(size/pageSize)+1)
 	page := globalPageList.allocate(int(size/pageSize) + 1)
@@ -257,6 +282,10 @@ func (nr *nodeRoot) createNode(key, value string, parent, lChild, rChild *nodePa
 		node.lChild = lChild
 		node.rChild = rChild
 		node.parent = parent
+		if !node.setTime(startTime, endTime) {
+			node.free()
+			return nil
+		}
 		node.keySize = len(key)
 		node.valueSize = len(value)
 		node.setKeyValue(key, value)
@@ -266,14 +295,21 @@ func (nr *nodeRoot) createNode(key, value string, parent, lChild, rChild *nodePa
 	return nil
 }
 
-func (nr *nodeRoot) insertNode(key, value string) bool {
+func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool {
+	nowTime = time.Now().Unix()
+	if endTime != 0 && endTime < nowTime {
+		return true
+	}
 
 	node := nr.search(key)
 	if node != nil {
 		if node.setValue(value) {
+			if !node.setTime(startTime, endTime) {
+				return false
+			}
 			return true
 		}
-		nodeTmp := nr.createNode(key, value, node.parent, node.lChild, node.rChild)
+		nodeTmp := nr.createNode(key, value, startTime, endTime, node.parent, node.lChild, node.rChild)
 		if node == nil {
 			lgd.Error("reset value fail!")
 			return false
@@ -291,7 +327,7 @@ func (nr *nodeRoot) insertNode(key, value string) bool {
 			node.free()
 		}
 	}
-	if node = nr.createNode(key, value, nil, nil, nil); node != nil {
+	if node = nr.createNode(key, value, startTime, endTime, nil, nil, nil); node != nil {
 		nr.insert(node)
 		return true
 	} else {
@@ -455,6 +491,8 @@ type nodePageElem struct {
 	lChild    *nodePageElem
 	rChild    *nodePageElem
 	parent    *nodePageElem
+	startTime int64
+	endTime   int64
 	keySize   int
 	valueSize int
 }
@@ -473,6 +511,58 @@ func (n *nodePageElem) setRed() {
 
 func (n *nodePageElem) setBlack() {
 	n.colorType = false
+}
+
+func (n *nodePageElem) isStart() bool {
+	nowTime = time.Now().Unix()
+	if n.startTime == 0 || n.startTime < nowTime {
+		return true
+	}
+	return false
+}
+
+func (n *nodePageElem) isEnd() bool {
+	nowTime = time.Now().Unix()
+	if n.endTime != 0 && n.endTime < nowTime {
+		return true
+	}
+	return false
+}
+
+func (n *nodePageElem) getStartTime() int64 {
+	return n.startTime
+}
+
+func (n *nodePageElem) getEndTime() int64 {
+	return n.endTime
+}
+
+func (n *nodePageElem) setTime(startTime, endTime int64) bool {
+	nowTime = time.Now().Unix()
+	if nowTime > startTime || nowTime > endTime {
+		return false
+	}
+	n.startTime = startTime
+	n.endTime = endTime
+	return true
+}
+
+func (n *nodePageElem) setStartTime(startTime int64) bool {
+	nowTime = time.Now().Unix()
+	if nowTime > startTime {
+		return false
+	}
+	n.startTime = startTime
+	return true
+}
+
+func (n *nodePageElem) setEndTime(endTime int64) bool {
+	nowTime = time.Now().Unix()
+	if nowTime > endTime {
+		return false
+	}
+	n.endTime = endTime
+	return true
 }
 
 func (n *nodePageElem) compare(node *nodePageElem) bool {
