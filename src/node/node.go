@@ -539,7 +539,7 @@ func (n *nodePageElem) getEndTime() int64 {
 
 func (n *nodePageElem) setTime(startTime, endTime int64) bool {
 	nowTime = time.Now().Unix()
-	if nowTime > startTime || nowTime > endTime {
+	if (startTime != 0 && nowTime > startTime) || (endTime != 0 && nowTime > endTime) {
 		return false
 	}
 	n.startTime = startTime

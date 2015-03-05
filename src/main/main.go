@@ -7,11 +7,10 @@ import (
 	"catchendb/src/util"
 	"flag"
 	"fmt"
-	"net/http"
+	"net"
 	"os"
 	"path"
 	"runtime/debug"
-	"strconv"
 	"syscall"
 	"time"
 )
@@ -21,28 +20,66 @@ import lgd "code.google.com/p/log4go"
 var configFile = flag.String("config", "../etc/config.xml", "configFile")
 var displayHelp = flag.Bool("help", false, "display HelpMessage")
 
-func handleServer(w http.ResponseWriter, r *http.Request) {
+func handleServer(conn *net.TCPConn) {
 	defer func() {
 		if re := recover(); re != nil {
-			lgd.Error("recover %s", r)
+			lgd.Error("recover %s", re)
 			lgd.Error("stack %s", debug.Stack())
 		}
 	}()
+	defer conn.Close()
 
-	res := logic.LYW(r)
-	bodysize := len(res)
-	w.Header().Add(http.CanonicalHeaderKey("Content-Length"), strconv.Itoa(bodysize))
-	w.Header().Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
-	w.Write(res)
-	return
+	data := make([]byte, 1024)
+	count, err := conn.Read(data)
+	if err != nil {
+		lgd.Error("read error[%s]", err)
+		return
+	}
+	ok, res := logic.AUT(data[:count])
+	conn.Write(res)
+	if !ok {
+		return
+	}
+	for {
+		count, err = conn.Read(data)
+		if err != nil {
+			lgd.Error("read error[%s]", err)
+			return
+		}
+		res := logic.LYW(data[:count])
+		conn.Write(res)
+	}
+	/*
+		res := logic.LYW(r)
+		bodysize := len(res)
+		w.Header().Add(http.CanonicalHeaderKey("Content-Length"), strconv.Itoa(bodysize))
+		w.Header().Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
+		w.Write(res)
+		return
+	*/
 }
 
 func mainloop() {
 
-	http.HandleFunc(config.GlobalConf.Server.Path, handleServer)
-	err := http.ListenAndServe(config.GlobalConf.Server.BindAddr, nil)
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", config.GlobalConf.Server.Path)
 	if err != nil {
-		lgd.Error("ListenAndServer[server] error[%s]", err)
+		lgd.Error("ResolveTCPAddr[server] error[%s]", err)
+		return
+	}
+	listener, err := net.ListenTCP("tcp", tcpAddr)
+	if err != nil {
+		lgd.Error("listenTCP[%s] error[%s]", tcpAddr, err)
+		return
+	}
+
+	for {
+		conn, err := listener.AcceptTCP()
+		if err != nil {
+			lgd.Error("listener Accept error[%s]", err)
+			return
+		}
+
+		go handleServer(conn)
 	}
 }
 

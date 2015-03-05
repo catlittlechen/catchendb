@@ -53,7 +53,7 @@ func (pn *pageNode) free(p *page) {
 	for {
 		if freenode.lBound > id {
 			if freenode.lBound == id+count {
-				if freenode.pre.rBound == id {
+				if freenode.pre != nil && freenode.pre.rBound == id {
 					freenode.pre.rBound = freenode.rBound
 					freenode.pre.next = freenode.next
 					return

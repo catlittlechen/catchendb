@@ -11,6 +11,7 @@ const (
 )
 
 const (
+	CMD_AUT    = "aut"
 	CMD_SET    = "set"
 	CMD_GET    = "get"
 	CMD_DEL    = "del"
@@ -22,15 +23,21 @@ const (
 )
 
 const (
-	ERR_URL_PARSE  = 0x100
-	ERR_CMD_MISS   = 0x101
-	ERR_PARSE_MISS = 0x102
-	ERR_CMD_SET    = 0x103
-	ERR_CMD_DEL    = 0x104
-	ERR_START_TIME = 0x105
-	ERR_END_TIME   = 0x106
-	ERR_CMD_DELAY  = 0x107
-	ERR_CMD_EXPIRE = 0x108
+	ERR_URL_PARSE     = 0x100
+	ERR_CMD_MISS      = 0x101
+	ERR_PARSE_MISS    = 0x102
+	ERR_ACCESS_DENIED = 0x103
+
+	ERR_USER_PASS      = 0x200
+	ERR_USER_DUPLICATE = 0x201
+	ERR_USER_NOT_EXIST = 0x202
+
+	ERR_CMD_SET    = 0x301
+	ERR_CMD_DEL    = 0x302
+	ERR_START_TIME = 0x303
+	ERR_END_TIME   = 0x304
+	ERR_CMD_DELAY  = 0x305
+	ERR_CMD_EXPIRE = 0x306
 )
 
 const (
