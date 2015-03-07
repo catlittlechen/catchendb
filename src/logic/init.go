@@ -56,7 +56,7 @@ func aut(data []byte) (ok bool, r []byte) {
 		r = util.JsonOut(rsp)
 		return
 	}
-	if !userAut(keyword) {
+	if !handleUserAut(keyword) {
 		rsp.C = ERR_ACCESS_DENIED
 		r = util.JsonOut(rsp)
 		return

@@ -31,6 +31,7 @@ const (
 	ERR_USER_PASS      = 0x200
 	ERR_USER_DUPLICATE = 0x201
 	ERR_USER_NOT_EXIST = 0x202
+	ERR_USER_PRIVILEGE = 0x203
 
 	ERR_CMD_SET    = 0x301
 	ERR_CMD_DEL    = 0x302
@@ -46,4 +47,7 @@ const (
 	URL_VALUE = "value"
 	URL_START = "start"
 	URL_END   = "end"
+	URL_USER  = "user"
+	URL_PASS  = "pass"
+	URL_PRIV  = "priv"
 )

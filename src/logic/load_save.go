@@ -5,9 +5,11 @@ import (
 	"catchendb/src/config"
 	"catchendb/src/node"
 	"catchendb/src/store"
+	"catchendb/src/user"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"time"
@@ -21,18 +23,19 @@ var (
 
 var (
 	lengthData int
+	lengthUser int
 )
 
 const (
 	magicKey   = "1A089524CB555F689E5E8F72CFFC54C7"
 	dataKeyLen = 10
+	userKeyLen = 10
 )
 
-type data struct {
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	StartTime int64  `json:"start"`
-	EndTime   int64  `json:"end"`
+type userInfo struct {
+	Username  string `json:"usmd"`
+	Password  string `json:"psmd"`
+	Privilege int    `json:"psmd"`
 }
 
 func LoadData() bool {
@@ -46,7 +49,9 @@ func LoadData() bool {
 		return false
 	}
 	defer fp.Close()
+	var line []byte
 
+	//magicKey
 	l := make([]byte, len(magicKey))
 	lens, err := fp.Read(l)
 	if err != nil && err != io.EOF {
@@ -59,6 +64,59 @@ func LoadData() bool {
 		return false
 	}
 
+	//userData
+	l = make([]byte, userKeyLen)
+	lens, err = fp.Read(l)
+	if err != nil {
+		lgd.Error("faile[%s] read error[%s]", filename, err)
+		return false
+	} else if lens != userKeyLen {
+		lgd.Error("file[%s] read error[len is illegal]", filename)
+		return false
+	} else {
+		lengthUser, err = strconv.Atoi(string(l))
+		if err != nil {
+			lgd.Error("file[%s] length fail! data[%s]", filename, l)
+			return false
+		}
+	}
+	count := lengthUser / int(math.Pow10(userKeyLen/5))
+	lengthUser = lengthUser % int(math.Pow10(userKeyLen/5))
+	length := lengthUser
+	for i := 0; i < count; i++ {
+		l = make([]byte, length)
+		lens, err = fp.Read(l)
+		if err != nil {
+			lgd.Error("file[%s] read error[%s]", filename, err)
+			return false
+		}
+		length, err = strconv.Atoi(string(l))
+		if err != nil {
+			lgd.Error("file[%s] length fail! data[%s]", filename, l)
+			return false
+		}
+		l = make([]byte, length)
+		lens, err = fp.Read(l)
+		if err != nil {
+			lgd.Error("file[%s] read error[%s]", filename, err)
+			return false
+		}
+		length = lengthUser
+		line, err = store.Decode(l)
+		if err != nil {
+			lgd.Error("data[%s] is illegal", l)
+			return false
+		}
+		u := userInfo{}
+		err = json.Unmarshal(line, &u)
+		if err != nil {
+			lgd.Error("data[%s] is illegal", line)
+			return false
+		}
+		go user.AddUser(u.Username, u.Password, u.Privilege)
+	}
+
+	//data
 	l = make([]byte, dataKeyLen)
 	lens, err = fp.Read(l)
 	if err != nil {
@@ -75,9 +133,7 @@ func LoadData() bool {
 		}
 	}
 
-	var line []byte
-	var d data
-	length := lengthData
+	length = lengthData
 	lengthBool := true
 	for {
 		l = make([]byte, length)
@@ -99,17 +155,14 @@ func LoadData() bool {
 		} else {
 			length = lengthData
 			line, err = store.Decode(l)
-			lgd.Debug(line)
 			if err != nil {
 				lgd.Error("data[%s] is illegal", l)
 				return false
 			}
-			err = json.Unmarshal(line, &d)
-			if err != nil {
+			if node.InPut(line) {
 				lgd.Error("data[%s] is illegal", line)
 				return false
 			}
-			go node.Put(d.Key, d.Value, d.StartTime, d.EndTime)
 		}
 		lengthBool = !lengthBool
 	}
@@ -129,25 +182,53 @@ func saveData() bool {
 		return false
 	}
 
-	channel := make(chan []byte, 1000)
-	go node.OutPut(channel, outPutSign)
-
-	var datastr []byte
-	var datastr2 string
-	datastr2 = magicKey + fmt.Sprintf("%0"+fmt.Sprintf("%d", dataKeyLen)+"d", lengthData)
-	_, err = fp.Write([]byte(datastr2))
+	//magicKey
+	_, err = fp.Write([]byte(magicKey))
 	if err != nil {
 		lgd.Error("file[%s] write fail! err[%s]", filename, err)
 		return false
 	}
-	printsign := "%0" + fmt.Sprintf("%d", lengthData) + "d"
+	count := 0
+	var datastrSum, datastr, datastr2 []byte
+	channel := make(chan []byte, 1000)
+	go user.OutPut(channel, outPutSign)
+	printsign := "%0" + fmt.Sprintf("%d", lengthUser) + "d"
 	for {
 		datastr = <-channel
 		if bytes.Equal(datastr, outPutSign) {
 			break
 		}
 		datastr = store.Encode(datastr)
-		datastr2 = fmt.Sprintf(printsign, len(datastr))
+		datastr2 = []byte(fmt.Sprintf(printsign, len(datastr)))
+		datastrSum = append(datastrSum, datastr2...)
+		datastrSum = append(datastrSum, datastr...)
+		count += 1
+	}
+
+	printsign = "%0" + fmt.Sprintf("%d", userKeyLen/2) + "d"
+	datastr = []byte(fmt.Sprintf(printsign+printsign, count, lengthUser))
+	datastr = append(datastr, datastrSum...)
+	_, err = fp.Write(datastr)
+	if err != nil {
+		lgd.Error("file[%s] write fail! err[%s]", filename, err)
+		return false
+	}
+
+	go node.OutPut(channel, outPutSign)
+	datastr = []byte(fmt.Sprintf("%0"+fmt.Sprintf("%d", dataKeyLen)+"d", lengthData))
+	_, err = fp.Write(datastr)
+	if err != nil {
+		lgd.Error("file[%s] write fail! err[%s]", filename, err)
+		return false
+	}
+	printsign = "%0" + fmt.Sprintf("%d", lengthData) + "d"
+	for {
+		datastr = <-channel
+		if bytes.Equal(datastr, outPutSign) {
+			break
+		}
+		datastr = store.Encode(datastr)
+		datastr = append([]byte(fmt.Sprintf(printsign, len(datastr))), datastr...)
 		_, err = fp.Write([]byte(datastr2))
 		lgd.Debug(datastr2)
 		if err != nil {

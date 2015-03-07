@@ -49,14 +49,6 @@ func handleServer(conn *net.TCPConn) {
 		res := logic.LYW(data[:count])
 		conn.Write(res)
 	}
-	/*
-		res := logic.LYW(r)
-		bodysize := len(res)
-		w.Header().Add(http.CanonicalHeaderKey("Content-Length"), strconv.Itoa(bodysize))
-		w.Header().Add(http.CanonicalHeaderKey("Content-Type"), "application/json")
-		w.Write(res)
-		return
-	*/
 }
 
 func mainloop() {

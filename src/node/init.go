@@ -2,6 +2,7 @@ package node
 
 import (
 	"catchendb/src/config"
+	"encoding/json"
 )
 
 var (
@@ -36,6 +37,16 @@ func Del(key string) bool {
 
 func OutPut(channel chan []byte, sign []byte) {
 	treeRoot.output(channel, sign)
+}
+
+func InPut(line []byte) bool {
+	d := data{}
+	err := json.Unmarshal(line, &d)
+	if err != nil {
+		return false
+	}
+	go treeRoot.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
+	return true
 }
 
 func Init() bool {
