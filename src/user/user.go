@@ -87,6 +87,15 @@ func motifyUserInfo(name, pass string, pri int) bool {
 	return true
 }
 
+func getPrivilege(name string) int {
+	if u, ok := mapUser[name]; !ok {
+		return 0
+	} else {
+		return u.getPrivilege()
+	}
+	return 0
+}
+
 func input(line []byte) bool {
 	u := userInfo{}
 	err := json.Unmarshal(line, &u)

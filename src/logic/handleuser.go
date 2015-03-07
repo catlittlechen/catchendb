@@ -7,14 +7,17 @@ import (
 	"strconv"
 )
 
-func handleUserAut(keyword url.Values) bool {
+func handleUserAut(keyword url.Values) (ok bool, privilege int) {
 	code := keyword.Get(URL_CMD)
 	username := keyword.Get(URL_USER)
 	password := keyword.Get(URL_PASS)
 	if code != CMD_AUT {
-		return false
+		return
 	}
-	return user.VerifyPassword(username, password)
+	if ok = user.VerifyPassword(username, password); ok {
+		privilege = user.GetPrivilege(username)
+	}
+	return
 }
 
 func handleUserAdd(keyword url.Values) []byte {
@@ -63,4 +66,11 @@ func handleUserPriv(keyword url.Values) []byte {
 		rsp.C = ERR_USER_PRIVILEGE
 	}
 	return util.JsonOut(rsp)
+}
+
+func initUser() {
+	registerCMD(CMD_UADD, 3, handleUserAdd, TYPE_X)
+	registerCMD(CMD_UDEL, 2, handleUserDelete, TYPE_X)
+	registerCMD(CMD_UPAS, 3, handleUserPass, TYPE_X)
+	registerCMD(CMD_UPRI, 3, handleUserPriv, TYPE_X)
 }

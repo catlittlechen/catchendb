@@ -12,6 +12,10 @@ const (
 
 const (
 	CMD_AUT    = "aut"
+	CMD_UADD   = "useradd"
+	CMD_UDEL   = "userdelete"
+	CMD_UPAS   = "userpass"
+	CMD_UPRI   = "userprivilege"
 	CMD_SET    = "set"
 	CMD_GET    = "get"
 	CMD_DEL    = "del"
@@ -27,6 +31,8 @@ const (
 	ERR_CMD_MISS      = 0x101
 	ERR_PARSE_MISS    = 0x102
 	ERR_ACCESS_DENIED = 0x103
+	ERR_SYSTEM_BUSY   = 0x104
+	ERR_SYSTEM_EROR   = 0x105
 
 	ERR_USER_PASS      = 0x200
 	ERR_USER_DUPLICATE = 0x201

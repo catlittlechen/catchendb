@@ -21,7 +21,7 @@ const (
 var (
 	nowTime     int64
 	treeRoot    *nodeRoot
-	outputMutex sync.Mutex
+	outputMutex *sync.Mutex
 	channel     chan []byte
 )
 
@@ -612,5 +612,6 @@ func (n *nodePageElem) free() {
 }
 
 func init() {
+	outputMutex = new(sync.Mutex)
 	treeRoot = new(nodeRoot)
 }

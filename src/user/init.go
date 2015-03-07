@@ -22,6 +22,10 @@ func MotifyUserInfo(name, pass string, pri int) bool {
 	return motifyUserInfo(name, pass, pri)
 }
 
+func GetPrivilege(name string) int {
+	return getPrivilege(name)
+}
+
 func InPut(line []byte) bool {
 	return input(line)
 }

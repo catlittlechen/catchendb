@@ -142,12 +142,12 @@ func handleTTS(keyword url.Values) []byte {
 }
 
 func initString() {
-	registerCMD(CMD_SET, 3, handleSet)
-	registerCMD(CMD_GET, 2, handleGet)
-	registerCMD(CMD_DEL, 2, handleDel)
-	registerCMD(CMD_SETEX, 5, handleSetEx)
-	registerCMD(CMD_DELAY, 3, handleDelay)
-	registerCMD(CMD_EXPIRE, 3, handleExpire)
-	registerCMD(CMD_TTL, 2, handleTTL)
-	registerCMD(CMD_TTS, 2, handleTTS)
+	registerCMD(CMD_SET, 3, handleSet, TYPE_W)
+	registerCMD(CMD_GET, 2, handleGet, TYPE_R)
+	registerCMD(CMD_DEL, 2, handleDel, TYPE_W)
+	registerCMD(CMD_SETEX, 5, handleSetEx, TYPE_W)
+	registerCMD(CMD_DELAY, 3, handleDelay, TYPE_W)
+	registerCMD(CMD_EXPIRE, 3, handleExpire, TYPE_W)
+	registerCMD(CMD_TTL, 2, handleTTL, TYPE_R)
+	registerCMD(CMD_TTS, 2, handleTTS, TYPE_R)
 }

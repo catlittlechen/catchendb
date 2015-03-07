@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	mmapLock sync.Mutex
+	mmapLock *sync.Mutex
 )
 
 func mmapSize(size int) int {
@@ -45,4 +45,5 @@ func munmap(dataMap []byte) error {
 }
 
 func init() {
+	mmapLock = new(sync.Mutex)
 }

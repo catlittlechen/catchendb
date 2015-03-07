@@ -35,7 +35,7 @@ func handleServer(conn *net.TCPConn) {
 		lgd.Error("read error[%s]", err)
 		return
 	}
-	ok, res := logic.AUT(data[:count])
+	ok, name, res := logic.AUT(data[:count])
 	conn.Write(res)
 	if !ok {
 		return
@@ -44,9 +44,10 @@ func handleServer(conn *net.TCPConn) {
 		count, err = conn.Read(data)
 		if err != nil {
 			lgd.Error("read error[%s]", err)
+			logic.DisConnection(name)
 			return
 		}
-		res := logic.LYW(data[:count])
+		res := logic.LYW(data[:count], name)
 		conn.Write(res)
 	}
 }
