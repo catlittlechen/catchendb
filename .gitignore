@@ -2,4 +2,4 @@ log/*
 data/*
 bin/ccdb
 bin/ccdb.tar.gz
-src/main/version.go
+src/server/version.go
