@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"runtime"
 	"runtime/debug"
 	"syscall"
 	"time"
@@ -54,14 +55,14 @@ func handleServer(conn *net.TCPConn) {
 
 func mainloop() {
 
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", config.GlobalConf.Server.Path)
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", config.GlobalConf.Server.BindAddr)
 	if err != nil {
-		lgd.Error("ResolveTCPAddr[server] error[%s]", err)
+		fmt.Fprintf(os.Stderr, "ResolveTCPAddr[%s] error[%s]", config.GlobalConf.Server.Path, err)
 		return
 	}
 	listener, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
-		lgd.Error("listenTCP[%s] error[%s]", tcpAddr, err)
+		fmt.Fprintf(os.Stderr, "listenTCP[%s] error[%s]", tcpAddr, err)
 		return
 	}
 
@@ -87,12 +88,11 @@ func Init() bool {
 	}
 	syscall.Umask(0)
 	os.Chdir(path.Dir(os.Args[0]))
-	if config.LoadConf(*configFile) {
-		lgd.LoadConfiguration(config.GlobalConf.Log)
-		os.Chmod(config.GlobalConf.Log, 0666)
-	} else {
-		return false
-	}
+	config.LoadConf(*configFile)
+
+	lgd.LoadConfiguration(config.GlobalConf.Log)
+	os.Chmod(config.GlobalConf.Log, 0666)
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	return node.Init() && logic.LoadData() && true
 }
 

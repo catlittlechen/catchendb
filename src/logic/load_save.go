@@ -54,11 +54,13 @@ func LoadData() bool {
 	//magicKey
 	l := make([]byte, len(magicKey))
 	lens, err := fp.Read(l)
-	if err != nil && err != io.EOF {
-		lgd.Error("file[%s] read error[%s]", filename, err)
-		return false
-	} else if err == io.EOF {
-		return true
+	if err != nil {
+		if err != io.EOF {
+			lgd.Error("file[%s] read error[%s]", filename, err)
+			return false
+		} else {
+			return true
+		}
 	} else if string(l) != magicKey {
 		lgd.Error("file[%s] magicKey[%s]", filename, l)
 		return false

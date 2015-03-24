@@ -1,6 +1,7 @@
 #!/bin/bash
 
 rm -f server/version.go
+rm -f client/version.go
 git rev-list HEAD | sort > config.git-hash
 LOCALVER=`wc -l config.git-hash | awk '{print $1}'`
 if [ $LOCALVER \> 1 ] ; then
@@ -20,5 +21,6 @@ fi
 rm -f config.git-hash
  
 cat server/version.go.template | sed "s/\$GIT_VERSION/$GIT_VERSION/g" > server/version.go
+cat client/version.go.template | sed "s/\$GIT_VERSION/$GIT_VERSION/g" > client/version.go
  
 echo "Generated version.go"

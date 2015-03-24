@@ -1,5 +1,8 @@
 log/*
 data/*
-bin/ccdb
-bin/ccdb.tar.gz
+bin/ccdb-server
+bin/ccdb-cli
+bin/server.tar.gz
+bin/client.tar.gz
 src/server/version.go
+src/client/version.go
