@@ -1,5 +1,5 @@
 #!/bin/bash
 
-killall ccdb
+killall ccdb-server
 #ulimit -n 100000
 ./ccdb-server --config=../etc/config.xml &

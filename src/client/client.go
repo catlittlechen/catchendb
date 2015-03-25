@@ -29,7 +29,7 @@ func Init() bool {
 	flag.Parse()
 	fmt.Printf("start time %s\n", util.FormalTime(time.Now().Unix()))
 	fmt.Printf("start version %s\n", VERSION)
-	fmt.Printf("help %t, username %s\n host[%s] port[%d]", *displayHelp, *username, *host, *port)
+	fmt.Printf("username----> %s\n host----> %s\t\tport---> %d\n", *username, *host, *port)
 	if *displayHelp {
 		flag.PrintDefaults()
 		return false
@@ -40,6 +40,8 @@ func Init() bool {
 func mainloop() {
 	bp := make([]byte, 1024)
 	var urlData url.Values
+	var count int
+	var err error
 	in := os.Stdin
 	out := os.Stdout
 	defer in.Close()
@@ -60,12 +62,12 @@ func mainloop() {
 
 	if *password == "" {
 		out.WriteString("ccdb>")
-		c, err := in.Read(bp)
+		count, err = in.Read(bp)
 		if err != nil {
 			out.WriteString("Fatal Error " + err.Error() + "\n")
 			return
 		}
-		bp = bp[:c-1]
+		bp = bp[:count-1]
 		password = (*string)(unsafe.Pointer(&bp))
 
 	}
@@ -81,20 +83,21 @@ func mainloop() {
 		return
 	}
 	data := make([]byte, 1024)
-	_, err = conn.Read(data)
+	count, err = conn.Read(data)
 	if err != nil {
 		out.WriteString("Fatal Error " + err.Error() + "\n")
 		return
 	}
 
 	var rsp Rsp
-	err = json.Unmarshal(data, &rsp)
+	err = json.Unmarshal(data[:count], &rsp)
 	if err != nil {
 		out.WriteString("Fatal Error " + err.Error() + "\n")
 		return
 	}
+
 	if rsp.C != 0 {
-		out.WriteString(fmt.Sprintf("ERROR %d Access denied for user '%s'@'%s' (using password: NO)", rsp.C, username, serverHost))
+		out.WriteString(fmt.Sprintf("ERROR %d Access denied for user '%s'@'%s' (using password: NO)\n", rsp.C, *username, serverHost))
 		return
 	}
 }
