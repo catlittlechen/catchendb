@@ -1,7 +1,7 @@
 package main
 
 import (
-	"catchendb/src/logic"
+	"catchendb/src/client/handle"
 	"catchendb/src/util"
 	"encoding/json"
 	"flag"
@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -29,7 +30,7 @@ func Init() bool {
 	flag.Parse()
 	fmt.Printf("start time %s\n", util.FormalTime(time.Now().Unix()))
 	fmt.Printf("start version %s\n", VERSION)
-	fmt.Printf("username----> %s\n host----> %s\t\tport---> %d\n", *username, *host, *port)
+	fmt.Printf("username----> %s\nhost----> %s\t\tport---> %d\n", *username, *host, *port)
 	if *displayHelp {
 		flag.PrintDefaults()
 		return false
@@ -38,7 +39,9 @@ func Init() bool {
 }
 
 func mainloop() {
-	bp := make([]byte, 1024)
+	bp := make([]byte, 10240)
+	data := make([]byte, 10240)
+	data2 := make([]byte, 10240)
 	var urlData url.Values
 	var count int
 	var err error
@@ -67,22 +70,20 @@ func mainloop() {
 			out.WriteString("Fatal Error " + err.Error() + "\n")
 			return
 		}
-		bp = bp[:count-1]
-		password = (*string)(unsafe.Pointer(&bp))
-
+		data2 = bp[:count-1]
+		password = (*string)(unsafe.Pointer(&data2))
 	}
 
 	urlData = url.Values{}
-	urlData.Add(logic.URL_CMD, logic.CMD_AUT)
-	urlData.Add(logic.URL_USER, *username)
-	urlData.Add(logic.URL_PASS, *password)
+	urlData.Add(handle.URL_CMD, handle.CMD_AUT)
+	urlData.Add(handle.URL_USER, *username)
+	urlData.Add(handle.URL_PASS, *password)
 	out.WriteString("ccdb>")
 	_, err = conn.Write([]byte(urlData.Encode()))
 	if err != nil {
 		out.WriteString("Fatal Error " + err.Error() + "\n")
 		return
 	}
-	data := make([]byte, 1024)
 	count, err = conn.Read(data)
 	if err != nil {
 		out.WriteString("Fatal Error " + err.Error() + "\n")
@@ -99,6 +100,56 @@ func mainloop() {
 	if rsp.C != 0 {
 		out.WriteString(fmt.Sprintf("ERROR %d Access denied for user '%s'@'%s' (using password: NO)\n", rsp.C, *username, serverHost))
 		return
+	}
+
+	for {
+		count, err = in.Read(bp)
+		if err != nil {
+			out.WriteString("Fatal Error " + err.Error() + "\n")
+			return
+		}
+		data2 = bp[:count-1]
+		if len(data2) == 0 {
+			out.WriteString("ccdb>")
+			continue
+		}
+		code := (strings.Split(string(data2), string(' ')))[0]
+		fun, ok := handle.GetHandle(code)
+		if !ok {
+			out.WriteString(fmt.Sprintf("wrong command[%s]\n", code))
+			out.WriteString("ccdb>")
+			continue
+		}
+		bp = fun(data2)
+		if bp == nil {
+			out.WriteString(fmt.Sprintf("wrong argv\n"))
+			out.WriteString("ccdb>")
+			continue
+
+		}
+		_, err = conn.Write(bp)
+		if err != nil {
+			out.WriteString("Fatal Error " + err.Error() + "\n")
+			return
+		}
+		count, err = conn.Read(data)
+		if err != nil {
+			out.WriteString("Fatal Error " + err.Error() + "\n")
+			return
+		}
+
+		var rsp Rsp
+		err = json.Unmarshal(data[:count], &rsp)
+		if err != nil {
+			out.WriteString("Fatal Error " + err.Error() + "\n")
+			return
+		}
+
+		if rsp.C != 0 {
+			out.WriteString(fmt.Sprintf("ERROR %d \n", rsp.C))
+			out.WriteString("ccdb>")
+			continue
+		}
 	}
 }
 

@@ -32,14 +32,8 @@ func lyw(data []byte, name string) []byte {
 
 	rsp := Rsp{}
 	urlStr := string(data)
-	urlTmp, err := url.Parse(urlStr)
-	if err != nil {
-		lgd.Error("Parse RequestURL fail with the url %s! ", urlStr)
-		rsp.C = ERR_URL_PARSE
-		return util.JsonOut(rsp)
-	}
 
-	keyword, err := url.ParseQuery(urlTmp.RawQuery)
+	keyword, err := url.ParseQuery(urlStr)
 	if err != nil {
 		lgd.Error("ParseQuery fail with the url %s", urlStr)
 		rsp.C = ERR_URL_PARSE
@@ -59,15 +53,8 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 
 	rsp := Rsp{}
 	urlStr := string(data)
-	urlTmp, err := url.Parse(urlStr)
-	if err != nil {
-		lgd.Error("Parse RequestURL fail with the url %s! ", urlStr)
-		rsp.C = ERR_URL_PARSE
-		r = util.JsonOut(rsp)
-		return
-	}
 
-	keyword, err := url.ParseQuery(urlTmp.RawQuery)
+	keyword, err := url.ParseQuery(urlStr)
 	if err != nil {
 		lgd.Error("ParseQuery fail with the url %s", urlStr)
 		rsp.C = ERR_URL_PARSE

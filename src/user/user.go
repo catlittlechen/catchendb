@@ -118,6 +118,9 @@ func output(channel chan []byte, outPutSign []byte) {
 func init() {
 	mapUser = make(map[string]userInfo)
 	u := new(userInfo)
-	u.init("root", "root", 7)
+	password := preUserSig + util.Md5("root")
+	password = util.Md5(password)
+
+	u.init("root", password, 7)
 	mapUser["root"] = *u
 }

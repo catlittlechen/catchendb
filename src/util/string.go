@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"strings"
 )
 
 func JsonOut(obj interface{}) []byte {
@@ -17,4 +18,14 @@ func Md5(str string) string {
 	io.WriteString(h, str)
 
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func SplitString(data string) (data2 []string) {
+	argvs := strings.Split(data, string(' '))
+	for _, argv := range argvs {
+		if len(argv) != 0 {
+			data2 = append(data2, argv)
+		}
+	}
+	return
 }

@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+//import lgd "code.google.com/p/log4go"
+
 func handleUserAut(keyword url.Values) (ok bool, privilege int) {
 	code := keyword.Get(URL_CMD)
 	username := keyword.Get(URL_USER)
