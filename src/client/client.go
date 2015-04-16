@@ -108,11 +108,16 @@ func mainloop() {
 			out.WriteString("Fatal Error " + err.Error() + "\n")
 			return
 		}
-		data2 = bp[:count-1]
-		if len(data2) == 0 {
+		fmt.Println(count)
+		if count == 0 || count == 1 {
 			out.WriteString("ccdb>")
 			continue
 		}
+		data2 = bp[:count-1]
+		if "exit" == string(data2) {
+			break
+		}
+
 		code := (strings.Split(string(data2), string(' ')))[0]
 		fun, ok := handle.GetHandle(code)
 		if !ok {
@@ -125,7 +130,6 @@ func mainloop() {
 			out.WriteString(fmt.Sprintf("wrong argv\n"))
 			out.WriteString("ccdb>")
 			continue
-
 		}
 		_, err = conn.Write(bp)
 		if err != nil {

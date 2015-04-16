@@ -30,6 +30,10 @@ const (
 	magicKey   = "1A089524CB555F689E5E8F72CFFC54C7"
 	dataKeyLen = 10
 	userKeyLen = 10
+
+//幻数写于文件的最前面
+//datakeylen为存储数据的基本长度
+//userkeylen为用户数据的基本长度
 )
 
 type userInfo struct {
@@ -82,9 +86,12 @@ func LoadData() bool {
 			return false
 		}
 	}
-	count := lengthUser / int(math.Pow10(userKeyLen/5))
-	lengthUser = lengthUser % int(math.Pow10(userKeyLen/5))
+	//count 代表这用户的数量
+	//lengthUser 代表这用户的信息长度的存储长度
+	count := lengthUser / int(math.Pow10(userKeyLen/2))
+	lengthUser = lengthUser % int(math.Pow10(userKeyLen/2))
 	length := lengthUser
+
 	for i := 0; i < count; i++ {
 		l = make([]byte, length)
 		lens, err = fp.Read(l)
@@ -103,7 +110,6 @@ func LoadData() bool {
 			lgd.Error("file[%s] read error[%s]", filename, err)
 			return false
 		}
-		length = lengthUser
 		line, err = store.Decode(l)
 		if err != nil {
 			lgd.Error("data[%s] is illegal", l)
@@ -116,6 +122,7 @@ func LoadData() bool {
 			return false
 		}
 		go user.AddUser(u.Username, u.Password, u.Privilege)
+		length = lengthUser
 	}
 
 	//data
@@ -266,4 +273,5 @@ func autoSaveData() (ret bool) {
 
 func init() {
 	lengthData = 4
+	lengthUser = 4
 }

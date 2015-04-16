@@ -44,7 +44,7 @@ func handleServer(conn *net.TCPConn) {
 	for {
 		count, err = conn.Read(data)
 		if err != nil {
-			lgd.Error("read error[%s]", err)
+			lgd.Warn("read error[%s]", err)
 			logic.DisConnection(name)
 			return
 		}
