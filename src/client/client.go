@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"catchendb/src/client/handle"
 	"catchendb/src/util"
 	"encoding/json"
@@ -11,7 +12,6 @@ import (
 	"os"
 	"strings"
 	"time"
-	"unsafe"
 )
 
 type Rsp struct {
@@ -39,15 +39,13 @@ func Init() bool {
 }
 
 func mainloop() {
-	bp := make([]byte, 10240)
+	bp := ""
 	data := make([]byte, 10240)
-	data2 := make([]byte, 10240)
 	var urlData url.Values
 	var count int
 	var err error
-	in := os.Stdin
+	in := bufio.NewReader(os.Stdin)
 	out := os.Stdout
-	defer in.Close()
 	defer out.Close()
 
 	serverHost := fmt.Sprintf("%s:%d", *host, *port)
@@ -65,73 +63,69 @@ func mainloop() {
 
 	if *password == "" {
 		out.WriteString("ccdb>")
-		count, err = in.Read(bp)
+		bp, err = in.ReadString('\n')
 		if err != nil {
 			out.WriteString("Fatal Error " + err.Error() + "\n")
 			return
 		}
-		data2 = bp[:count-1]
-		password = (*string)(unsafe.Pointer(&data2))
+		bp = strings.Trim(bp, "\n")
+		password = &bp
 	}
 
 	urlData = url.Values{}
 	urlData.Add(handle.URL_CMD, handle.CMD_AUT)
 	urlData.Add(handle.URL_USER, *username)
 	urlData.Add(handle.URL_PASS, *password)
-	out.WriteString("ccdb>")
 	_, err = conn.Write([]byte(urlData.Encode()))
 	if err != nil {
-		out.WriteString("Fatal Error " + err.Error() + "\n")
+		out.WriteString("ccdb>Fatal Error " + err.Error() + "\n")
 		return
 	}
 	count, err = conn.Read(data)
 	if err != nil {
-		out.WriteString("Fatal Error " + err.Error() + "\n")
+		out.WriteString("ccdb>Fatal Error " + err.Error() + "\n")
 		return
 	}
 
 	var rsp Rsp
 	err = json.Unmarshal(data[:count], &rsp)
 	if err != nil {
-		out.WriteString("Fatal Error " + err.Error() + "\n")
+		out.WriteString("ccdb>Fatal Error " + err.Error() + "\n")
 		return
 	}
 
 	if rsp.C != 0 {
-		out.WriteString(fmt.Sprintf("ERROR %d Access denied for user '%s'@'%s' (using password: NO)\n", rsp.C, *username, serverHost))
+		out.WriteString(fmt.Sprintf("ccdb>ERROR %d Access denied for user '%s'@'%s' (using password: YES)\n", rsp.C, *username, serverHost))
 		return
 	}
 
 	for {
-		count, err = in.Read(bp)
+		out.WriteString("ccdb>")
+		bp, err = in.ReadString('\n')
 		if err != nil {
 			out.WriteString("Fatal Error " + err.Error() + "\n")
 			return
 		}
-		fmt.Println(count)
-		if count == 0 || count == 1 {
-			out.WriteString("ccdb>")
+		bp = strings.Trim(bp, "\n")
+		if len(bp) == 0 {
 			continue
 		}
-		data2 = bp[:count-1]
-		if "exit" == string(data2) {
+		if "exit" == bp {
 			break
 		}
 
-		code := (strings.Split(string(data2), string(' ')))[0]
+		code := (strings.Split(bp, string(' ')))[0]
 		fun, ok := handle.GetHandle(code)
 		if !ok {
 			out.WriteString(fmt.Sprintf("wrong command[%s]\n", code))
-			out.WriteString("ccdb>")
 			continue
 		}
-		bp = fun(data2)
-		if bp == nil {
-			out.WriteString(fmt.Sprintf("wrong argv\n"))
-			out.WriteString("ccdb>")
+		data = fun([]byte(bp))
+		if data == nil {
+			out.WriteString("wrong argv\n")
 			continue
 		}
-		_, err = conn.Write(bp)
+		_, err = conn.Write(data)
 		if err != nil {
 			out.WriteString("Fatal Error " + err.Error() + "\n")
 			return
@@ -151,7 +145,6 @@ func mainloop() {
 
 		if rsp.C != 0 {
 			out.WriteString(fmt.Sprintf("ERROR %d \n", rsp.C))
-			out.WriteString("ccdb>")
 			continue
 		}
 	}
