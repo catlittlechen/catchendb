@@ -145,6 +145,7 @@ func LoadData() bool {
 	length = lengthData
 	lengthBool := true
 	for {
+		lgd.Debug(length)
 		l = make([]byte, length)
 		lens, err = fp.Read(l)
 		if err != nil {
@@ -156,6 +157,7 @@ func LoadData() bool {
 			}
 		}
 		if lengthBool {
+			lgd.Debug(string(l))
 			length, err = strconv.Atoi(string(l))
 			if err != nil {
 				lgd.Error("file[%s] length fail! data[%s]", filename, l)
@@ -168,7 +170,7 @@ func LoadData() bool {
 				lgd.Error("data[%s] is illegal", l)
 				return false
 			}
-			if node.InPut(line) {
+			if !node.InPut(line) {
 				lgd.Error("data[%s] is illegal", line)
 				return false
 			}
@@ -197,6 +199,7 @@ func saveData() bool {
 		lgd.Error("file[%s] write fail! err[%s]", filename, err)
 		return false
 	}
+	//user
 	count := 0
 	var datastrSum, datastr, datastr2 []byte
 	channel := make(chan []byte, 1000)
@@ -238,12 +241,6 @@ func saveData() bool {
 		}
 		datastr = store.Encode(datastr)
 		datastr = append([]byte(fmt.Sprintf(printsign, len(datastr))), datastr...)
-		_, err = fp.Write([]byte(datastr2))
-		lgd.Debug(datastr2)
-		if err != nil {
-			lgd.Error("file[%s] write fail! err[%s]", filename, err)
-			return false
-		}
 		_, err = fp.Write(datastr)
 		lgd.Debug(string(datastr))
 		if err != nil {

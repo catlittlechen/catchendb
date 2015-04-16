@@ -41,6 +41,7 @@ func Init() bool {
 func mainloop() {
 	bp := ""
 	data := make([]byte, 10240)
+	data2 := make([]byte, 10240)
 	var urlData url.Values
 	var count int
 	var err error
@@ -120,12 +121,12 @@ func mainloop() {
 			out.WriteString(fmt.Sprintf("wrong command[%s]\n", code))
 			continue
 		}
-		data = fun([]byte(bp))
-		if data == nil {
+		data2 = fun([]byte(bp))
+		if data2 == nil {
 			out.WriteString("wrong argv\n")
 			continue
 		}
-		_, err = conn.Write(data)
+		_, err = conn.Write(data2)
 		if err != nil {
 			out.WriteString("Fatal Error " + err.Error() + "\n")
 			return
@@ -139,13 +140,15 @@ func mainloop() {
 		var rsp Rsp
 		err = json.Unmarshal(data[:count], &rsp)
 		if err != nil {
-			out.WriteString("Fatal Error " + err.Error() + "\n")
+			out.WriteString("Fatal Data " + string(data[:count]) + "Error " + err.Error() + "\n")
 			return
 		}
 
 		if rsp.C != 0 {
 			out.WriteString(fmt.Sprintf("ERROR %d \n", rsp.C))
 			continue
+		} else {
+			out.WriteString(rsp.D + "\n")
 		}
 	}
 }
