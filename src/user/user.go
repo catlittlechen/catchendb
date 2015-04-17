@@ -53,6 +53,19 @@ func verifyPassword(username, password string) bool {
 	return u.verifyPassword(password)
 }
 
+func initUser(line []byte) bool {
+	u := new(userInfo)
+	err := json.Unmarshal(line, u)
+	if err != nil {
+		return false
+	}
+	if _, ok := mapUser[u.Username]; ok {
+		return false
+	}
+	mapUser[u.Username] = *u
+	return true
+}
+
 func addUser(name, pass string, pri int) bool {
 	u := new(userInfo)
 	if _, ok := mapUser[name]; ok {

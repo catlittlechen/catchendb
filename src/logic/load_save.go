@@ -6,7 +6,6 @@ import (
 	"catchendb/src/node"
 	"catchendb/src/store"
 	"catchendb/src/user"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -35,12 +34,6 @@ const (
 //datakeylen为存储数据的基本长度
 //userkeylen为用户数据的基本长度
 )
-
-type userInfo struct {
-	Username  string `json:"usmd"`
-	Password  string `json:"psmd"`
-	Privilege int    `json:"psmd"`
-}
 
 func LoadData() bool {
 
@@ -115,13 +108,7 @@ func LoadData() bool {
 			lgd.Error("data[%s] is illegal", l)
 			return false
 		}
-		u := userInfo{}
-		err = json.Unmarshal(line, &u)
-		if err != nil {
-			lgd.Error("data[%s] is illegal", line)
-			return false
-		}
-		go user.AddUser(u.Username, u.Password, u.Privilege)
+		go user.InitUser(line)
 		length = lengthUser
 	}
 
