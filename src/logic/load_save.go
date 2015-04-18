@@ -11,13 +11,16 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
 import lgd "code.google.com/p/log4go"
 
 var (
-	outPutSign = []byte("quit")
+	outPutSign   = []byte("quit")
+	outPutMutex  *sync.Mutex
+	outPutBoolen bool
 )
 
 var (
@@ -173,6 +176,17 @@ func LoadData() bool {
 }
 
 func saveData() bool {
+	outPutMutex.Lock()
+	if outPutBoolen {
+		outPutMutex.Unlock()
+		return true
+	}
+	outPutBoolen = true
+	outPutMutex.Unlock()
+
+	defer func() {
+		outPutBoolen = false
+	}()
 
 	filename := config.GlobalConf.Data.DataPath + config.GlobalConf.Data.DataName + ".tmp"
 	lgd.Trace("start saveData[%s] at the time[%d]", filename, time.Now().Unix())
@@ -261,4 +275,6 @@ func autoSaveData() (ret bool) {
 func init() {
 	lengthData = 4
 	lengthUser = 4
+	outPutMutex = new(sync.Mutex)
+	outPutBoolen = false
 }

@@ -2,7 +2,6 @@ package node
 
 import (
 	"bytes"
-	"sync"
 	"time"
 	"unsafe"
 )
@@ -18,10 +17,9 @@ const (
 )
 
 var (
-	nowTime     int64
-	treeRoot    *nodeRoot
-	outputMutex *sync.Mutex
-	channel     chan []byte
+	nowTime  int64
+	treeRoot *nodeRoot
+	channel  chan []byte
 )
 
 type nodeRoot struct {
@@ -33,7 +31,7 @@ func (nr *nodeRoot) input(line []byte) bool {
 	if !d.decode(line) {
 		return false
 	}
-	go treeRoot.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
+	go nr.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
 	return true
 }
 
@@ -613,6 +611,5 @@ func (n *nodePageElem) free() {
 }
 
 func init() {
-	outputMutex = new(sync.Mutex)
 	treeRoot = new(nodeRoot)
 }
