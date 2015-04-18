@@ -9,9 +9,6 @@ const (
 func VerifyPassword(username, password string) bool {
 	return verifyPassword(username, password)
 }
-func InitUser(line []byte) bool {
-	return initUser(line)
-}
 
 func AddUser(name, pass string, pri int) bool {
 	return addUser(name, pass, pri)

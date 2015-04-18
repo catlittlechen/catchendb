@@ -2,7 +2,6 @@ package node
 
 import (
 	"bytes"
-	"encoding/json"
 	"sync"
 	"time"
 	"unsafe"
@@ -25,15 +24,17 @@ var (
 	channel     chan []byte
 )
 
-type data struct {
-	Key       string `json:"key"`
-	Value     string `json:"value"`
-	StartTime int64  `json:"start"`
-	EndTime   int64  `json:"end"`
-}
-
 type nodeRoot struct {
 	node *nodePageElem
+}
+
+func (nr *nodeRoot) input(line []byte) bool {
+	d := data{}
+	if !d.decode(line) {
+		return false
+	}
+	go treeRoot.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
+	return true
 }
 
 func (nr *nodeRoot) output(channe chan []byte, sign []byte) {
@@ -50,7 +51,7 @@ func (nr *nodeRoot) preorder(node *nodePageElem) {
 		d.Value = string(node.value())
 		d.StartTime = node.getStartTime()
 		d.EndTime = node.getEndTime()
-		datastr, _ := json.Marshal(d)
+		datastr, _ := d.encode()
 		channel <- datastr
 		nr.preorder(node.lChild)
 		nr.preorder(node.rChild)

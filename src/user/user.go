@@ -40,6 +40,24 @@ func (u *userInfo) setPrivilege(pri int) {
 	u.Privilege = pri
 }
 
+func (u *userInfo) encode() (line []byte, ok bool) {
+	var err error
+	line, err = json.Marshal(u)
+	if err != nil {
+		return
+	}
+	ok = true
+	return
+}
+
+func (u *userInfo) decode(line []byte) bool {
+	err := json.Unmarshal(line, u)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 var (
 	mapUser map[string]userInfo
 )
@@ -51,19 +69,6 @@ func verifyPassword(username, password string) bool {
 		return false
 	}
 	return u.verifyPassword(password)
-}
-
-func initUser(line []byte) bool {
-	u := new(userInfo)
-	err := json.Unmarshal(line, u)
-	if err != nil {
-		return false
-	}
-	if _, ok := mapUser[u.Username]; ok {
-		return false
-	}
-	mapUser[u.Username] = *u
-	return true
 }
 
 func addUser(name, pass string, pri int) bool {
@@ -111,10 +116,10 @@ func getPrivilege(name string) int {
 
 func input(line []byte) bool {
 	u := userInfo{}
-	err := json.Unmarshal(line, &u)
-	if err != nil {
+	if !u.decode(line) {
 		return false
 	}
+
 	mapUser[u.Username] = u
 	return true
 }
@@ -122,7 +127,7 @@ func input(line []byte) bool {
 func output(channel chan []byte, outPutSign []byte) {
 	for k, _ := range mapUser {
 		u := mapUser[k]
-		line, _ := json.Marshal(u)
+		line, _ := u.encode()
 		channel <- line
 	}
 	channel <- outPutSign

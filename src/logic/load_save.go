@@ -108,7 +108,10 @@ func LoadData() bool {
 			lgd.Error("data[%s] is illegal", l)
 			return false
 		}
-		go user.InitUser(line)
+		if !user.InPut(line) {
+			lgd.Error("data[%s] is illegal", line)
+			return false
+		}
 		length = lengthUser
 	}
 
