@@ -1,6 +1,7 @@
 package node
 
 import (
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -33,7 +34,7 @@ func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *ac
 	page := globalPageList.allocate(int(size/pageSize) + 1)
 	if page != nil {
 		node = page.acNodePageElem()
-		node.parent = parent
+		node.setParent(parent)
 		if !node.setTime(start, end) {
 			node.free()
 			return nil
@@ -47,20 +48,75 @@ func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *ac
 }
 
 func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
-	node := ac.node.getChild(key[0])
+	node := ac.node
+	ok := false
+	lenc := 0
+	index := 0
+	status := false
+	for {
+		if status {
+			node.lock()
+		}
+		child := node.getChild(key[0])
+		if child == nil {
+			child = ac.createNode(key, value, start, end, node)
+			return true
+		}
+		ok, lenc, index = child.compareKey(key)
+		if !ok || lenc == 1 {
+			node.lock()
+			if node.isChanging() {
+				status = true
+				node.unlock()
+				continue
+			}
+			node.changeStatus()
+			node.unlock()
+		}
+		if !ok {
+			acKey := child.key()
+			child.setKey(string(acKey[index:]))
+			child2 := ac.createNode(key[:index], "", 0, 0, node)
+			child3 := ac.createNode(key[index:], value, start, end, child2)
+			node.setChild(key[0], child2)
+			child2.setChild(key[index], child3)
+			child2.setChild(acKey[index], child)
+			child.setParent(child2)
+			return true
+		}
+		switch lenc {
+		case -1:
+			key = key[index:]
+			node = child
+		case 0:
+			child.setValue(value)
+			child.setStartTime(start)
+			child.setEndTime(end)
+			return true
+		case 1:
+			acKey := child.key()
+			child2 := ac.createNode(key, value, start, end, node)
+			node.setChild(key[0], child2)
+			child2.setChild(acKey[index], child)
+			child.setParent(child2)
+			return true
+		}
 
+	}
 	return false
 }
 
 func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 	node = ac.node.getChild(key[0])
 	index := 0
+	ok := false
+	lenc := 0
 	for node != nil {
-		index = node.compareKey(key)
-		if index < 0 {
+		ok, lenc, index = node.compareKey(key)
+		if !ok || lenc == 1 {
 			return nil
 		}
-		if index == 0 {
+		if lenc == 0 {
 			return node
 		}
 		key = key[:index]
@@ -72,7 +128,11 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
 	node := ac.search(key)
 	if node != nil {
-		return string(node.value()), node.getStartTime(), node.getEndTime()
+		value = string(node.value())
+		if value == "" {
+			return
+		}
+		return value, node.getStartTime(), node.getEndTime()
 	}
 	return
 }
@@ -92,7 +152,10 @@ func (ac *acNodeRoot) setEndTime(key string, end int64) bool {
 }
 
 func (ac *acNodeRoot) deleteNode(key string) bool {
-	return false
+	//TODO
+	node := ac.search(key)
+	node.setValue("")
+	return true
 }
 
 func (ac *acNodeRoot) outPut(chans chan []byte, sign []byte) {
@@ -119,31 +182,48 @@ type acNodePageElem struct {
 	ptr       *page
 	parent    *acNodePageElem
 	child     [256]*acNodePageElem
+	nodeMutex *sync.Mutex
+	status    bool
 	startTime int64
 	endTime   int64
 	keySize   int
 	valueSize int
 }
 
-func (ac *acNodePageElem) compareKey(key string) (index int) {
+func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {
 	acKey := ac.key()
-	acBool := true
+	lenc = -1
 	count := len(acKey)
-	if count > len(key) {
+	if count == len(key) {
+		lenc = 0
+	} else if count > len(key) {
 		count = len(key)
-		acBool = false
+		lenc = 1
 	}
 	for index = 0; index < count; index++ {
 		if acKey[index] == key[index] {
 			continue
 		}
-		if acBool {
-			index = -index
-		}
 		return
 	}
-	index = 0
+	ok = true
 	return
+}
+
+func (ac *acNodePageElem) lock() {
+	ac.nodeMutex.Lock()
+}
+
+func (ac *acNodePageElem) unlock() {
+	ac.nodeMutex.Unlock()
+}
+
+func (ac *acNodePageElem) isChanging() bool {
+	return ac.status
+}
+
+func (ac *acNodePageElem) changeStatus() {
+	ac.status = !ac.status
 }
 
 func (ac *acNodePageElem) getChild(child byte) (node *acNodePageElem) {
@@ -152,6 +232,10 @@ func (ac *acNodePageElem) getChild(child byte) (node *acNodePageElem) {
 
 func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
 	ac.child[child] = node
+}
+
+func (ac *acNodePageElem) setParent(parent *acNodePageElem) {
+	ac.parent = parent
 }
 
 func (ac *acNodePageElem) isStart() bool {
@@ -218,6 +302,16 @@ func (ac *acNodePageElem) value() []byte {
 
 func (ac *acNodePageElem) setKeyValue(key, value string) bool {
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
+	ac.keySize = len(key)
+	ac.valueSize = len(value)
+	copy(buf[nodePageSize:nodePageSize+ac.keySize], []byte(key))
+	copy(buf[nodePageSize+ac.keySize:nodePageSize+ac.keySize+ac.valueSize], []byte(value))
+	return true
+}
+
+func (ac *acNodePageElem) setKey(key string) bool {
+	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
+	value := ac.value()
 	ac.keySize = len(key)
 	ac.valueSize = len(value)
 	copy(buf[nodePageSize:nodePageSize+ac.keySize], []byte(key))
