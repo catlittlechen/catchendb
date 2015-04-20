@@ -21,6 +21,12 @@ func (p *page) nodePageElem() (n *nodePageElem) {
 	return
 }
 
+func (p *page) acNodePageElem() (ac *acNodePageElem) {
+	ac = (*acNodePageElem)(unsafe.Pointer(&p.ptr))
+	ac.ptr = p
+	return
+}
+
 type pid uint64
 
 type pids []pid

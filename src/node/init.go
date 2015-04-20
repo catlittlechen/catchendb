@@ -44,5 +44,5 @@ func InPut(line []byte) bool {
 
 func Init() bool {
 	pageSize = config.GlobalConf.PageSize
-	return true
+	return acInit()
 }
