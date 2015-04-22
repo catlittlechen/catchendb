@@ -73,7 +73,6 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 				continue
 			}
 			if node.getChild(key[0]) != child {
-				status = true
 				node.unlock()
 				continue
 			}
