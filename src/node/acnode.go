@@ -72,6 +72,11 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 				node.unlock()
 				continue
 			}
+			if node.getChild(key[0]) != child {
+				status = true
+				node.unlock()
+				continue
+			}
 			node.changeStatus()
 			node.unlock()
 		}
@@ -168,7 +173,22 @@ func (ac *acNodeRoot) setEndTime(key string, end int64) bool {
 func (ac *acNodeRoot) deleteNode(key string) bool {
 	//TODO
 	node := ac.search(key)
+	node.lock()
+	if node.getChildNum() == 1 {
+		if node.isChanging() {
+			node.unlock()
+			<-node.channel
+		}
+	} else {
+		node.unlock()
+	}
+	parent := node.getParent()
+	parent.lock()
+	if parent.getChildNum() == 1 && len(parent.value()) == 0 {
+
+	}
 	node.setValue("")
+
 	return true
 }
 
@@ -196,6 +216,7 @@ type acNodePageElem struct {
 	ptr       *page
 	parent    *acNodePageElem
 	child     [256]*acNodePageElem
+	childNum  int
 	nodeMutex *sync.Mutex
 	channel   chan bool
 	status    bool
@@ -246,16 +267,34 @@ func (ac *acNodePageElem) openBlock() {
 	ac.channel = make(chan bool)
 }
 
+func (ac *acNodePageElem) getChildNum() int {
+	return ac.childNum
+}
+
 func (ac *acNodePageElem) getChild(child byte) (node *acNodePageElem) {
 	return ac.child[child]
 }
 
 func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
+	if ac.child[child] == nil {
+		ac.childNum += 1
+	}
 	ac.child[child] = node
+}
+
+func (ac *acNodePageElem) delChild(child byte) {
+	if ac.child[child] != nil {
+		ac.childNum -= 1
+		ac.child[child] = nil
+	}
 }
 
 func (ac *acNodePageElem) setParent(parent *acNodePageElem) {
 	ac.parent = parent
+}
+
+func (ac *acNodePageElem) getParent() *acNodePageElem {
+	return ac.parent
 }
 
 func (ac *acNodePageElem) isStart() bool {
