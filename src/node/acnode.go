@@ -6,6 +6,8 @@ import (
 	"unsafe"
 )
 
+import lgd "code.google.com/p/log4go"
+
 var (
 	acRoot    *acNodeRoot
 	channelAC chan []byte
@@ -20,13 +22,11 @@ type acNodeRoot struct {
 }
 
 func (ac *acNodeRoot) init() bool {
-	size := pageHeaderSize + acNodePageSize
-	page := globalPageList.allocate(int(size/pageSize) + 1)
-	if page != nil {
-		ac.node = page.acNodePageElem()
-		return true
+	ac.node = ac.createNode("", "", 0, 0, nil)
+	if ac.node == nil {
+		return false
 	}
-	return false
+	return true
 }
 
 func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *acNodePageElem) (node *acNodePageElem) {
@@ -34,15 +34,16 @@ func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *ac
 	page := globalPageList.allocate(int(size/pageSize) + 1)
 	if page != nil {
 		node = page.acNodePageElem()
-		node.setParent(parent)
+		node.init()
 		if !node.setTime(start, end) {
 			node.free()
 			return nil
 		}
-		node.channel = make(chan bool)
+		node.setParent(parent)
 		node.keySize = len(key)
 		node.valueSize = len(value)
 		node.setKeyValue(key, value)
+		lgd.Info("key %s value %s", key, value)
 		return
 	}
 	return
@@ -61,22 +62,42 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 		}
 		child := node.getChild(key[0])
 		if child == nil {
-			child = ac.createNode(key, value, start, end, node)
-			return true
-		}
-		ok, lenc, index = child.compareKey(key)
-		if !ok || lenc == 1 {
+			lgd.Info("lock")
 			node.lock()
 			if node.isChanging() {
 				status = true
+				lgd.Info("unlock")
 				node.unlock()
 				continue
 			}
 			if node.getChild(key[0]) != child {
+				lgd.Info("unlock")
+				node.unlock()
+				continue
+			}
+			child = ac.createNode(key, value, start, end, node)
+			node.setChild(key[0], child)
+			lgd.Info("unlock")
+			node.unlock()
+			return true
+		}
+		ok, lenc, index = child.compareKey(key)
+		if !ok || lenc == 1 {
+			lgd.Info("lock")
+			node.lock()
+			if node.isChanging() {
+				status = true
+				lgd.Info("unlock")
+				node.unlock()
+				continue
+			}
+			if node.getChild(key[0]) != child {
+				lgd.Info("unlock")
 				node.unlock()
 				continue
 			}
 			node.changeStatus()
+			lgd.Info("unlock")
 			node.unlock()
 		}
 		if !ok {
@@ -84,13 +105,15 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			child.setKey(string(acKey[index:]))
 			child2 := ac.createNode(key[:index], "", 0, 0, node)
 			child3 := ac.createNode(key[index:], value, start, end, child2)
+			lgd.Info("lock")
+			node.lock()
 			node.setChild(key[0], child2)
 			child2.setChild(key[index], child3)
 			child2.setChild(acKey[index], child)
 			child.setParent(child2)
-			node.lock()
 			node.changeStatus()
 			node.openBlock()
+			lgd.Info("unlock")
 			node.unlock()
 			return true
 		}
@@ -102,20 +125,25 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			child.setValue(value)
 			child.setStartTime(start)
 			child.setEndTime(end)
+			lgd.Info("lock")
 			node.lock()
 			node.changeStatus()
 			node.openBlock()
+			lgd.Info("unlock")
 			node.unlock()
 			return true
 		case 1:
 			acKey := child.key()
 			child2 := ac.createNode(key, value, start, end, node)
+			lgd.Info("lock")
+			node.lock()
 			node.setChild(key[0], child2)
 			child2.setChild(acKey[index], child)
+			child.setKey(string(acKey[index:]))
 			child.setParent(child2)
-			node.lock()
 			node.changeStatus()
 			node.openBlock()
+			lgd.Info("unlock")
 			node.unlock()
 			return true
 		}
@@ -137,7 +165,8 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 		if lenc == 0 {
 			return node
 		}
-		key = key[:index]
+		key = key[index:]
+		lgd.Info("search next node key %s", key)
 		node = node.getChild(key[0])
 	}
 	return
@@ -170,28 +199,36 @@ func (ac *acNodeRoot) setEndTime(key string, end int64) bool {
 }
 
 func (ac *acNodeRoot) deleteNode(key string) bool {
-	//TODO
 	node := ac.search(key)
-	node.lock()
-	if node.getChildNum() == 1 {
-		if node.isChanging() {
-			node.unlock()
-			<-node.channel
-		}
-	} else {
-		node.unlock()
-	}
-	parent := node.getParent()
-	parent.lock()
-	if parent.getChildNum() == 1 && len(parent.value()) == 0 {
-
-	}
 	node.setValue("")
 
+	for node.getChildNum() == 0 {
+		parent := node.getParent()
+		if parent == nil {
+			break
+		}
+		lgd.Info("lock")
+		parent.lock()
+		if parent.isChanging() {
+			lgd.Info("unlock")
+			parent.unlock()
+			continue
+		}
+		if parent.getChild((node.key())[0]) != node {
+			lgd.Info("unlock")
+			parent.unlock()
+			continue
+		}
+		parent.delChild((node.key())[0])
+		node.free()
+		node = parent
+		lgd.Info("unlock")
+		parent.unlock()
+	}
 	return true
 }
 
-func (ac *acNodeRoot) outPut(chans chan []byte, sign []byte) {
+func (ac *acNodeRoot) output(chans chan []byte, sign []byte) {
 	channelAC = chans
 	ac.preorder()
 	channelAC <- sign
@@ -201,7 +238,7 @@ func (ac *acNodeRoot) preorder() {
 
 }
 
-func (ac *acNodeRoot) inPut(line []byte) bool {
+func (ac *acNodeRoot) input(line []byte) bool {
 	d := data{}
 
 	if !d.decode(line) {
@@ -223,6 +260,11 @@ type acNodePageElem struct {
 	endTime   int64
 	keySize   int
 	valueSize int
+}
+
+func (ac *acNodePageElem) init() {
+	ac.channel = make(chan bool)
+	ac.nodeMutex = new(sync.Mutex)
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {
@@ -262,7 +304,9 @@ func (ac *acNodePageElem) changeStatus() {
 }
 
 func (ac *acNodePageElem) openBlock() {
+	//	if ac.channel != nil {
 	close(ac.channel)
+	//	}
 	ac.channel = make(chan bool)
 }
 
