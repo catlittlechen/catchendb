@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-import lgd "code.google.com/p/log4go"
+//import lgd "code.google.com/p/log4go"
 
 var (
 	acRoot    *acNodeRoot
@@ -43,7 +43,6 @@ func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *ac
 		node.keySize = len(key)
 		node.valueSize = len(value)
 		node.setKeyValue(key, value)
-		lgd.Info("key %s value %s", key, value)
 		return
 	}
 	return
@@ -61,45 +60,38 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			status = false
 		}
 		child := node.getChild(key[0])
-		lgd.Info("key %s", key)
 		if child == nil {
-			lgd.Info("lock")
 			node.lock()
 			if node.isChanging() {
 				status = true
-				lgd.Info("unlock")
 				node.unlock()
 				continue
 			}
 			if node.getChild(key[0]) != child {
-				lgd.Info("unlock")
 				node.unlock()
 				continue
 			}
 			child = ac.createNode(key, value, start, end, node)
+			if child == nil {
+				return false
+			}
 			node.setChild(key[0], child)
-			lgd.Info("unlock")
 			node.unlock()
 			return true
 		}
-		lgd.Info(string(child.key()))
 		ok, lenc, index = child.compareKey(key)
 		if !ok || lenc == 1 {
-			lgd.Info("lock")
 			node.lock()
 			if node.isChanging() {
 				status = true
-				lgd.Info("unlock")
 				node.unlock()
 				continue
 			}
 			if node.getChild(key[0]) != child {
-				lgd.Info("unlock")
 				node.unlock()
 				continue
 			}
 			node.changeStatus()
-			lgd.Info("unlock")
 			node.unlock()
 		}
 		if !ok {
@@ -107,7 +99,9 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			child.setKey(string(acKey[index:]))
 			child2 := ac.createNode(key[:index], "", 0, 0, node)
 			child3 := ac.createNode(key[index:], value, start, end, child2)
-			lgd.Info("lock")
+			if child2 == nil || child3 == nil {
+				return false
+			}
 			node.lock()
 			node.setChild(key[0], child2)
 			child2.setChild(key[index], child3)
@@ -115,7 +109,6 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			child.setParent(child2)
 			node.changeStatus()
 			node.openBlock()
-			lgd.Info("unlock")
 			node.unlock()
 			return true
 		}
@@ -127,17 +120,17 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			child.setValue(value)
 			child.setStartTime(start)
 			child.setEndTime(end)
-			lgd.Info("lock")
 			node.lock()
 			node.changeStatus()
 			node.openBlock()
-			lgd.Info("unlock")
 			node.unlock()
 			return true
 		case 1:
 			acKey := child.key()
 			child2 := ac.createNode(key, value, start, end, node)
-			lgd.Info("lock")
+			if child2 == nil {
+				return false
+			}
 			node.lock()
 			node.setChild(key[0], child2)
 			child2.setChild(acKey[index], child)
@@ -145,7 +138,6 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			child.setParent(child2)
 			node.changeStatus()
 			node.openBlock()
-			lgd.Info("unlock")
 			node.unlock()
 			return true
 		}
@@ -160,7 +152,6 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 	ok := false
 	lenc := 0
 	for node != nil {
-		lgd.Info(string(node.key()))
 		ok, lenc, index = node.compareKey(key)
 		if !ok || lenc == 1 {
 			return nil
@@ -169,7 +160,6 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 			return node
 		}
 		key = key[index:]
-		lgd.Info("search next node key %s", key)
 		node = node.getChild(key[0])
 	}
 	return
@@ -210,22 +200,18 @@ func (ac *acNodeRoot) deleteNode(key string) bool {
 		if parent == nil {
 			break
 		}
-		lgd.Info("lock")
 		parent.lock()
 		if parent.isChanging() {
-			lgd.Info("unlock")
 			parent.unlock()
 			continue
 		}
 		if parent.getChild((node.key())[0]) != node {
-			lgd.Info("unlock")
 			parent.unlock()
 			continue
 		}
 		parent.delChild((node.key())[0])
 		node.free()
 		node = parent
-		lgd.Info("unlock")
 		parent.unlock()
 	}
 	return true
@@ -259,6 +245,7 @@ type acNodePageElem struct {
 	nodeMutex *sync.Mutex
 	channel   chan bool
 	status    bool
+
 	startTime int64
 	endTime   int64
 	keySize   int
@@ -329,7 +316,6 @@ func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
 		ac.childNum += 1
 	}
 	ac.child[child] = node
-	lgd.Info("set child key %s key %s", string(child), node.key())
 }
 
 func (ac *acNodePageElem) delChild(child byte) {
@@ -399,22 +385,26 @@ func (ac *acNodePageElem) setEndTime(endTime int64) bool {
 	return true
 }
 
-func (ac *acNodePageElem) key() []byte {
+func (ac *acNodePageElem) key() (key []byte) {
+	key = make([]byte, ac.keySize)
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
-	return buf[nodePageSize : nodePageSize+ac.keySize]
+	copy(key, buf[acNodePageSize:acNodePageSize+ac.keySize])
+	return
 }
 
-func (ac *acNodePageElem) value() []byte {
+func (ac *acNodePageElem) value() (value []byte) {
+	value = make([]byte, ac.valueSize)
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
-	return buf[nodePageSize+ac.keySize : nodePageSize+ac.keySize+ac.valueSize]
+	copy(value, buf[acNodePageSize+ac.keySize:acNodePageSize+ac.keySize+ac.valueSize])
+	return
 }
 
 func (ac *acNodePageElem) setKeyValue(key, value string) bool {
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
 	ac.keySize = len(key)
 	ac.valueSize = len(value)
-	copy(buf[nodePageSize:nodePageSize+ac.keySize], []byte(key))
-	copy(buf[nodePageSize+ac.keySize:nodePageSize+ac.keySize+ac.valueSize], []byte(value))
+	copy(buf[acNodePageSize:acNodePageSize+ac.keySize], []byte(key))
+	copy(buf[acNodePageSize+ac.keySize:acNodePageSize+ac.keySize+ac.valueSize], []byte(value))
 	return true
 }
 
@@ -423,17 +413,17 @@ func (ac *acNodePageElem) setKey(key string) bool {
 	value := ac.value()
 	ac.keySize = len(key)
 	ac.valueSize = len(value)
-	copy(buf[nodePageSize:nodePageSize+ac.keySize], []byte(key))
-	copy(buf[nodePageSize+ac.keySize:nodePageSize+ac.keySize+ac.valueSize], []byte(value))
+	copy(buf[acNodePageSize:acNodePageSize+ac.keySize], []byte(key))
+	copy(buf[acNodePageSize+ac.keySize:acNodePageSize+ac.keySize+ac.valueSize], []byte(value))
 	return true
 }
 
 func (ac *acNodePageElem) setValue(value string) bool {
-	size := pageHeaderSize + nodePageSize + ac.keySize + len(value)
+	size := pageHeaderSize + acNodePageSize + ac.keySize + len(value)
 	if size < int(ac.ptr.count)*pageSize {
 		buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
 		ac.valueSize = len(value)
-		copy(buf[nodePageSize+ac.keySize:nodePageSize+ac.keySize+ac.valueSize], []byte(value))
+		copy(buf[acNodePageSize+ac.keySize:acNodePageSize+ac.keySize+ac.valueSize], []byte(value))
 		return true
 	}
 	return false

@@ -15,9 +15,9 @@ const (
 	pageHeaderSize = int(unsafe.Offsetof(((*page)(nil)).ptr))
 )
 
-func (p *page) nodePageElem() (n *nodePageElem) {
-	n = (*nodePageElem)(unsafe.Pointer(&p.ptr))
-	n.ptr = p
+func (p *page) nodeData() (nd *nodeData) {
+	nd = (*nodeData)(unsafe.Pointer(&p.ptr))
+	nd.ptr = p
 	return
 }
 

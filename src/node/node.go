@@ -3,14 +3,11 @@ package node
 import (
 	"bytes"
 	"time"
-	"unsafe"
 )
 
 import lgd "code.google.com/p/log4go"
 
 const (
-	nodePageSize = int(unsafe.Sizeof(nodePageElem{}))
-
 	NODE_KEY_SMALL = -1
 	NODE_KEY_EQUAL = 0
 	NODE_KEY_LARGE = 1
@@ -273,11 +270,12 @@ func (nr *nodeRoot) insert(node *nodePageElem) {
 }
 
 func (nr *nodeRoot) createNode(key, value string, startTime, endTime int64, parent, lChild, rChild *nodePageElem) (node *nodePageElem) {
-	size := pageHeaderSize + nodePageSize + len(key) + len(value)
+	node = new(nodePageElem)
+	size := pageHeaderSize + nodeDataSize + len(key) + len(value)
 	lgd.Trace("size[%d] pagecount[%d]", size, int(size/pageSize)+1)
 	page := globalPageList.allocate(int(size/pageSize) + 1)
 	if page != nil {
-		node = page.nodePageElem()
+		node.data = page.nodeData()
 		node.lChild = lChild
 		node.rChild = rChild
 		node.parent = parent
@@ -285,8 +283,6 @@ func (nr *nodeRoot) createNode(key, value string, startTime, endTime int64, pare
 			node.free()
 			return nil
 		}
-		node.keySize = len(key)
-		node.valueSize = len(value)
 		node.setKeyValue(key, value)
 		return node
 	}
@@ -485,15 +481,11 @@ func (nr *nodeRoot) deleteNode(key string) bool {
 }
 
 type nodePageElem struct {
-	ptr       *page
 	colorType bool
 	lChild    *nodePageElem
 	rChild    *nodePageElem
 	parent    *nodePageElem
-	startTime int64
-	endTime   int64
-	keySize   int
-	valueSize int
+	data      *nodeData
 }
 
 func (n *nodePageElem) isRed() bool {
@@ -513,27 +505,19 @@ func (n *nodePageElem) setBlack() {
 }
 
 func (n *nodePageElem) isStart() bool {
-	nowTime = time.Now().Unix()
-	if n.startTime == 0 || n.startTime < nowTime {
-		return true
-	}
-	return false
+	return n.data.isStart()
 }
 
 func (n *nodePageElem) isEnd() bool {
-	nowTime = time.Now().Unix()
-	if n.endTime != 0 && n.endTime < nowTime {
-		return true
-	}
-	return false
+	return n.data.isEnd()
 }
 
 func (n *nodePageElem) getStartTime() int64 {
-	return n.startTime
+	return n.data.getStartTime()
 }
 
 func (n *nodePageElem) getEndTime() int64 {
-	return n.endTime
+	return n.data.getEndTime()
 }
 
 func (n *nodePageElem) setTime(startTime, endTime int64) bool {
@@ -541,26 +525,18 @@ func (n *nodePageElem) setTime(startTime, endTime int64) bool {
 	if (startTime != 0 && nowTime > startTime) || (endTime != 0 && nowTime > endTime) {
 		return false
 	}
-	n.startTime = startTime
-	n.endTime = endTime
+	n.setStartTime(startTime)
+	n.setEndTime(endTime)
 	return true
 }
 
 func (n *nodePageElem) setStartTime(startTime int64) bool {
-	nowTime = time.Now().Unix()
-	if nowTime > startTime {
-		return false
-	}
-	n.startTime = startTime
+	n.data.setStartTime(startTime)
 	return true
 }
 
 func (n *nodePageElem) setEndTime(endTime int64) bool {
-	nowTime = time.Now().Unix()
-	if nowTime > endTime {
-		return false
-	}
-	n.endTime = endTime
+	n.data.setEndTime(endTime)
 	return true
 }
 
@@ -578,36 +554,25 @@ func (n *nodePageElem) compareKey(key string) int {
 	return NODE_KEY_EQUAL
 }
 
-func (n *nodePageElem) key() []byte {
-	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(n))
-	return buf[nodePageSize : nodePageSize+n.keySize]
+func (n *nodePageElem) key() (key []byte) {
+	return n.data.key()
 }
 
-func (n *nodePageElem) value() []byte {
-	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(n))
-	return buf[nodePageSize+n.keySize : nodePageSize+n.keySize+n.valueSize]
+func (n *nodePageElem) value() (value []byte) {
+	return n.data.value()
 }
 
 func (n *nodePageElem) setKeyValue(key, value string) bool {
-	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(n))
-	copy(buf[nodePageSize:nodePageSize+n.keySize], []byte(key))
-	copy(buf[nodePageSize+n.keySize:nodePageSize+n.keySize+n.valueSize], []byte(value))
-	return true
+	return n.data.setKeyValue(key, value)
 }
 
 func (n *nodePageElem) setValue(value string) bool {
-	size := pageHeaderSize + nodePageSize + n.keySize + len(value)
-	if size < int(n.ptr.count)*pageSize {
-		buf := (*[maxAlloacSize]byte)(unsafe.Pointer(n))
-		n.valueSize = len(value)
-		copy(buf[nodePageSize+n.keySize:nodePageSize+n.keySize+n.valueSize], []byte(value))
-		return true
-	}
-	return false
+	return n.data.setValue(value)
 }
 
 func (n *nodePageElem) free() {
-	globalPageList.free(n.ptr)
+	n.data.free()
+	n.data = nil
 }
 
 func init() {

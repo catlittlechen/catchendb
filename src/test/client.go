@@ -122,6 +122,7 @@ func mainloop() {
 		} else if len(rsp.D) != 0 {
 			fmt.Println(rsp.D + "\n")
 		}
+		time.Sleep(1e9)
 	}
 }
 
