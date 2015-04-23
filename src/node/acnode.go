@@ -61,6 +61,7 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			status = false
 		}
 		child := node.getChild(key[0])
+		lgd.Info("key %s", key)
 		if child == nil {
 			lgd.Info("lock")
 			node.lock()
@@ -81,6 +82,7 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			node.unlock()
 			return true
 		}
+		lgd.Info(string(child.key()))
 		ok, lenc, index = child.compareKey(key)
 		if !ok || lenc == 1 {
 			lgd.Info("lock")
@@ -158,6 +160,7 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 	ok := false
 	lenc := 0
 	for node != nil {
+		lgd.Info(string(node.key()))
 		ok, lenc, index = node.compareKey(key)
 		if !ok || lenc == 1 {
 			return nil
@@ -265,6 +268,9 @@ type acNodePageElem struct {
 func (ac *acNodePageElem) init() {
 	ac.channel = make(chan bool)
 	ac.nodeMutex = new(sync.Mutex)
+	for i := 0; i < 256; i++ {
+		ac.child[i] = nil
+	}
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {
@@ -323,6 +329,7 @@ func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
 		ac.childNum += 1
 	}
 	ac.child[child] = node
+	lgd.Info("set child key %s key %s", string(child), node.key())
 }
 
 func (ac *acNodePageElem) delChild(child byte) {
