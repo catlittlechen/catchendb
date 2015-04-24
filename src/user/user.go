@@ -9,8 +9,8 @@ import lgd "code.google.com/p/log4go"
 
 type userInfo struct {
 	Username  string `json:"usmd"`
-	Password  string `json:"psmd"`
-	Privilege int    `json:"psmd"`
+	Password  string `json:"pamd"`
+	Privilege int    `json:"pri"`
 }
 
 func (u *userInfo) init(user, pass string, pri int) {
@@ -42,7 +42,7 @@ func (u *userInfo) setPrivilege(pri int) {
 
 func (u *userInfo) encode() (line []byte, ok bool) {
 	var err error
-	line, err = json.Marshal(u)
+	line, err = json.Marshal(*u)
 	if err != nil {
 		return
 	}
@@ -65,7 +65,7 @@ var (
 func verifyPassword(username, password string) bool {
 	u, ok := mapUser[username]
 	if !ok {
-		lgd.Warn("No username[%s] exists")
+		lgd.Warn("No username[%s] exists", username)
 		return false
 	}
 	return u.verifyPassword(password)
