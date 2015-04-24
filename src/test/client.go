@@ -84,7 +84,14 @@ func mainloop() {
 	}
 
 	r := rand.New(rand.NewSource(99))
+	countap := 1
+	fmt.Println(time.Now().Unix())
 	for {
+		countap += 1
+		if countap == 1000000 {
+			fmt.Println(time.Now().Unix())
+			break
+		}
 		bp = fmt.Sprintf("set %d %d", r.Int63(), r.Int63())
 
 		code := (strings.Split(bp, string(' ')))[0]
@@ -122,7 +129,6 @@ func mainloop() {
 		} else if len(rsp.D) != 0 {
 			fmt.Println(rsp.D + "\n")
 		}
-		time.Sleep(1e7)
 	}
 }
 
