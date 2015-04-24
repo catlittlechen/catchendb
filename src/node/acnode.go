@@ -34,6 +34,16 @@ func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *ac
 	return
 }
 
+func (ac *acNodeRoot) createData(key, value string, start, end int64, node *acNodePageElem) bool {
+	node.data.free()
+	node.data = nil
+	node.data = createAcData(key, value, start, end)
+	if node.data == nil {
+		return false
+	}
+	return true
+}
+
 func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 	defer func() {
 		lgd.Info("ok")
@@ -106,9 +116,12 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			key = key[index:]
 			node = child
 		case 0:
-			child.setValue(value)
-			child.setStartTime(start)
-			child.setEndTime(end)
+			if child.setValue(value) {
+				child.setStartTime(start)
+				child.setEndTime(end)
+			} else if !ac.createData(key, value, start, end, child) {
+				return false
+			}
 			node.lock()
 			node.changeStatus()
 			node.openBlock()

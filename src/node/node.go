@@ -2,6 +2,7 @@ package node
 
 import (
 	"bytes"
+	"sync"
 	"time"
 )
 
@@ -20,7 +21,8 @@ var (
 )
 
 type nodeRoot struct {
-	node *nodePageElem
+	node  *nodePageElem
+	mutex *sync.Mutex
 }
 
 func (nr *nodeRoot) input(line []byte) bool {
@@ -282,6 +284,9 @@ func (nr *nodeRoot) createNode(key, value string, startTime, endTime int64, pare
 }
 
 func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool {
+	nr.mutex.Lock()
+	defer nr.mutex.Unlock()
+
 	nowTime = time.Now().Unix()
 	if endTime != 0 && endTime < nowTime {
 		return true
@@ -393,6 +398,8 @@ func (nr *nodeRoot) deleteFixTree(node, parent *nodePageElem) {
 }
 
 func (nr *nodeRoot) delet(node *nodePageElem) {
+	nr.mutex.Lock()
+	defer nr.mutex.Unlock()
 	var child, parent, replace *nodePageElem
 	var color bool
 
@@ -562,4 +569,5 @@ func (n *nodePageElem) free() {
 
 func init() {
 	treeRoot = new(nodeRoot)
+	treeRoot.mutex = new(sync.Mutex)
 }

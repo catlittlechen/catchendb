@@ -30,6 +30,7 @@ func (nd *acNodeData) init() {
 }
 
 func (nd *acNodeData) free() {
+	nd.memory = nil
 }
 
 func (nd *acNodeData) getStartTime() int64 {
