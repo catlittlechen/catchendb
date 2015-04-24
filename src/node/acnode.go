@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-//import lgd "code.google.com/p/log4go"
+import lgd "code.google.com/p/log4go"
 
 var (
 	acRoot    *acNodeRoot
@@ -26,7 +26,7 @@ func (ac *acNodeRoot) init() bool {
 func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *acNodePageElem) (node *acNodePageElem) {
 	node = new(acNodePageElem)
 	node.init()
-	node.data = createData(key, value, start, end)
+	node.data = createAcData(key, value, start, end)
 	if node.data == nil {
 		return nil
 	}
@@ -35,6 +35,9 @@ func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *ac
 }
 
 func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
+	defer func() {
+		lgd.Info("ok")
+	}()
 	node := ac.node
 	ok := false
 	lenc := 0
@@ -231,7 +234,7 @@ type acNodePageElem struct {
 	channel   chan bool
 	status    bool
 
-	data *nodeData
+	data *acNodeData
 }
 
 func (ac *acNodePageElem) init() {
