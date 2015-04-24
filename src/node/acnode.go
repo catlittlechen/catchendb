@@ -2,8 +2,6 @@ package node
 
 import (
 	"sync"
-	"time"
-	"unsafe"
 )
 
 //import lgd "code.google.com/p/log4go"
@@ -11,10 +9,6 @@ import (
 var (
 	acRoot    *acNodeRoot
 	channelAC chan []byte
-)
-
-const (
-	acNodePageSize = int(unsafe.Sizeof(acNodePageElem{}))
 )
 
 type acNodeRoot struct {
@@ -30,21 +24,13 @@ func (ac *acNodeRoot) init() bool {
 }
 
 func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *acNodePageElem) (node *acNodePageElem) {
-	size := pageHeaderSize + acNodePageSize + len(key) + len(value)
-	page := globalPageList.allocate(int(size/pageSize) + 1)
-	if page != nil {
-		node = page.acNodePageElem()
-		node.init()
-		if !node.setTime(start, end) {
-			node.free()
-			return nil
-		}
-		node.setParent(parent)
-		node.keySize = len(key)
-		node.valueSize = len(value)
-		node.setKeyValue(key, value)
-		return
+	node = new(acNodePageElem)
+	node.init()
+	node.data = createData(key, value, start, end)
+	if node.data == nil {
+		return nil
 	}
+	node.setParent(parent)
 	return
 }
 
@@ -238,26 +224,20 @@ func (ac *acNodeRoot) input(line []byte) bool {
 }
 
 type acNodePageElem struct {
-	ptr       *page
 	parent    *acNodePageElem
-	child     [256]*acNodePageElem
+	child     map[byte]*acNodePageElem
 	childNum  int
 	nodeMutex *sync.Mutex
 	channel   chan bool
 	status    bool
 
-	startTime int64
-	endTime   int64
-	keySize   int
-	valueSize int
+	data *nodeData
 }
 
 func (ac *acNodePageElem) init() {
 	ac.channel = make(chan bool)
 	ac.nodeMutex = new(sync.Mutex)
-	for i := 0; i < 256; i++ {
-		ac.child[i] = nil
-	}
+	ac.child = make(map[byte]*acNodePageElem)
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {
@@ -334,103 +314,56 @@ func (ac *acNodePageElem) getParent() *acNodePageElem {
 }
 
 func (ac *acNodePageElem) isStart() bool {
-	nowTime = time.Now().Unix()
-	if ac.startTime == 0 || ac.startTime < nowTime {
-		return true
-	}
-	return false
+	return ac.data.isStart()
 }
 
 func (ac *acNodePageElem) isEnd() bool {
-	nowTime = time.Now().Unix()
-	if ac.endTime != 0 && ac.endTime < nowTime {
-		return true
-	}
-	return false
+	return ac.data.isEnd()
 }
 
 func (ac *acNodePageElem) getStartTime() int64 {
-	return ac.startTime
+	return ac.data.getStartTime()
 }
 
 func (ac *acNodePageElem) getEndTime() int64 {
-	return ac.endTime
+	return ac.data.getEndTime()
 }
 
 func (ac *acNodePageElem) setTime(startTime, endTime int64) bool {
-	nowTime = time.Now().Unix()
-	if (startTime != 0 && nowTime > startTime) || (endTime != 0 && nowTime > endTime) {
-		return false
-	}
-	ac.startTime = startTime
-	ac.endTime = endTime
-	return true
+	return ac.data.setStartTime(startTime) && ac.data.setEndTime(endTime)
 }
 
 func (ac *acNodePageElem) setStartTime(startTime int64) bool {
-	nowTime = time.Now().Unix()
-	if nowTime > startTime {
-		return false
-	}
-	ac.startTime = startTime
-	return true
+	return ac.data.setStartTime(startTime)
 }
 
 func (ac *acNodePageElem) setEndTime(endTime int64) bool {
-	nowTime = time.Now().Unix()
-	if nowTime > endTime {
-		return false
-	}
-	ac.endTime = endTime
-	return true
+	return ac.data.setEndTime(endTime)
 }
 
 func (ac *acNodePageElem) key() (key []byte) {
-	key = make([]byte, ac.keySize)
-	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
-	copy(key, buf[acNodePageSize:acNodePageSize+ac.keySize])
-	return
+	return ac.data.key()
 }
 
 func (ac *acNodePageElem) value() (value []byte) {
-	value = make([]byte, ac.valueSize)
-	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
-	copy(value, buf[acNodePageSize+ac.keySize:acNodePageSize+ac.keySize+ac.valueSize])
-	return
+	return ac.data.value()
 }
 
 func (ac *acNodePageElem) setKeyValue(key, value string) bool {
-	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
-	ac.keySize = len(key)
-	ac.valueSize = len(value)
-	copy(buf[acNodePageSize:acNodePageSize+ac.keySize], []byte(key))
-	copy(buf[acNodePageSize+ac.keySize:acNodePageSize+ac.keySize+ac.valueSize], []byte(value))
-	return true
+	return ac.data.setKeyValue(key, value)
 }
 
 func (ac *acNodePageElem) setKey(key string) bool {
-	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
-	value := ac.value()
-	ac.keySize = len(key)
-	ac.valueSize = len(value)
-	copy(buf[acNodePageSize:acNodePageSize+ac.keySize], []byte(key))
-	copy(buf[acNodePageSize+ac.keySize:acNodePageSize+ac.keySize+ac.valueSize], []byte(value))
-	return true
+	return ac.data.setKey(key)
 }
 
 func (ac *acNodePageElem) setValue(value string) bool {
-	size := pageHeaderSize + acNodePageSize + ac.keySize + len(value)
-	if size < int(ac.ptr.count)*pageSize {
-		buf := (*[maxAlloacSize]byte)(unsafe.Pointer(ac))
-		ac.valueSize = len(value)
-		copy(buf[acNodePageSize+ac.keySize:acNodePageSize+ac.keySize+ac.valueSize], []byte(value))
-		return true
-	}
-	return false
+	return ac.data.setValue(value)
 }
 
 func (ac *acNodePageElem) free() {
-	globalPageList.free(ac.ptr)
+	ac.data.free()
+	ac.data = nil
 }
 
 func acInit() bool {

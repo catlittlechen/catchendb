@@ -43,6 +43,22 @@ type nodeData struct {
 	valueSize int
 }
 
+func createData(key, value string, start, end int64) (data *nodeData) {
+	size := pageHeaderSize + nodeDataSize + len(key) + len(value)
+	page := globalPageList.allocate(int(size/pageSize) + 1)
+	if page != nil {
+		data = page.nodeData()
+		data.init()
+		if !data.setStartTime(start) || !data.setEndTime(end) {
+			data.free()
+			return nil
+		}
+		data.setKeyValue(key, value)
+		return
+	}
+	return nil
+}
+
 func (nd *nodeData) init() {
 
 }
@@ -55,13 +71,13 @@ func (nd *nodeData) getStartTime() int64 {
 	return nd.startTime
 }
 
-func (nd *nodeData) setStartTime(start int64) {
+func (nd *nodeData) setStartTime(start int64) bool {
 	nd.startTime = start
+	return true
 }
 
 func (nd *nodeData) isStart() bool {
-	nowTime = time.Now().Unix()
-	if nd.startTime == 0 || nd.startTime < nowTime {
+	if nd.startTime < time.Now().Unix() {
 		return true
 	}
 	return false
@@ -71,13 +87,16 @@ func (nd *nodeData) getEndTime() int64 {
 	return nd.endTime
 }
 
-func (nd *nodeData) setEndTime(end int64) {
+func (nd *nodeData) setEndTime(end int64) bool {
+	if end != 0 && time.Now().Unix() > end {
+		return false
+	}
 	nd.endTime = end
+	return true
 }
 
 func (nd *nodeData) isEnd() bool {
-	nowTime = time.Now().Unix()
-	if nd.endTime != 0 && nd.endTime < nowTime {
+	if nd.endTime != 0 && nd.endTime < time.Now().Unix() {
 		return true
 	}
 	return false

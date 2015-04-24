@@ -271,23 +271,14 @@ func (nr *nodeRoot) insert(node *nodePageElem) {
 
 func (nr *nodeRoot) createNode(key, value string, startTime, endTime int64, parent, lChild, rChild *nodePageElem) (node *nodePageElem) {
 	node = new(nodePageElem)
-	size := pageHeaderSize + nodeDataSize + len(key) + len(value)
-	lgd.Trace("size[%d] pagecount[%d]", size, int(size/pageSize)+1)
-	page := globalPageList.allocate(int(size/pageSize) + 1)
-	if page != nil {
-		node.data = page.nodeData()
-		node.lChild = lChild
-		node.rChild = rChild
-		node.parent = parent
-		if !node.setTime(startTime, endTime) {
-			node.free()
-			return nil
-		}
-		node.setKeyValue(key, value)
-		return node
+	node.data = createData(key, value, startTime, endTime)
+	if node.data == nil {
+		return nil
 	}
-
-	return nil
+	node.lChild = lChild
+	node.rChild = rChild
+	node.parent = parent
+	return node
 }
 
 func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool {
@@ -521,13 +512,7 @@ func (n *nodePageElem) getEndTime() int64 {
 }
 
 func (n *nodePageElem) setTime(startTime, endTime int64) bool {
-	nowTime = time.Now().Unix()
-	if (startTime != 0 && nowTime > startTime) || (endTime != 0 && nowTime > endTime) {
-		return false
-	}
-	n.setStartTime(startTime)
-	n.setEndTime(endTime)
-	return true
+	return n.setStartTime(startTime) && n.setEndTime(endTime)
 }
 
 func (n *nodePageElem) setStartTime(startTime int64) bool {
