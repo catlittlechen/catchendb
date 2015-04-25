@@ -9,16 +9,14 @@ import (
 
 //import lgd "code.google.com/p/log4go"
 
-func handleUserAut(keyword url.Values) (ok bool, privilege int) {
+func handleUserAut(keyword url.Values) (ok bool, username string) {
 	code := keyword.Get(URL_CMD)
-	username := keyword.Get(URL_USER)
+	username = keyword.Get(URL_USER)
 	password := keyword.Get(URL_PASS)
 	if code != CMD_AUT {
 		return
 	}
-	if ok = user.VerifyPassword(username, password); ok {
-		privilege = user.GetPrivilege(username)
-	}
+	ok = user.VerifyPassword(username, password)
 	return
 }
 

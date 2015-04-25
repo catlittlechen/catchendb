@@ -1,8 +1,9 @@
 package logic
 
 import (
+	"catchendb/src/config"
+	"catchendb/src/user"
 	"catchendb/src/util"
-	"fmt"
 	"net/url"
 	"sync"
 )
@@ -10,9 +11,8 @@ import (
 import lgd "code.google.com/p/log4go"
 
 var (
-	userPrivilege map[string]int
-	getNameMutex  *sync.Mutex
-	nameInt       int
+	userConnection map[string]int
+	userMutex      *sync.Mutex
 )
 
 func LYW(data []byte, name string) []byte {
@@ -24,7 +24,14 @@ func AUT(data []byte) (bool, string, []byte) {
 }
 
 func DisConnection(name string) {
-	delete(userPrivilege, name)
+	userMutex.Lock()
+	defer userMutex.Unlock()
+	if userConnection[name] == 1 {
+		delete(userConnection, name)
+	} else {
+		userConnection[name] -= 1
+	}
+	return
 }
 
 func lyw(data []byte, name string) []byte {
@@ -39,12 +46,7 @@ func lyw(data []byte, name string) []byte {
 		rsp.C = ERR_URL_PARSE
 		return util.JsonOut(rsp)
 	}
-	privilege, ok := userPrivilege[name]
-	if !ok {
-		lgd.Error("System Error For Get Privilege")
-		rsp.C = ERR_SYSTEM_EROR
-		return util.JsonOut(rsp)
-	}
+	privilege := user.GetPrivilege(name)
 	return mapAction(keyword, privilege)
 }
 
@@ -61,29 +63,33 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 		r = util.JsonOut(rsp)
 		return
 	}
-	privilege := 0
-	ok, privilege = handleUserAut(keyword)
+	ok, name = handleUserAut(keyword)
 	if !ok {
 		rsp.C = ERR_ACCESS_DENIED
 		r = util.JsonOut(rsp)
 		return
 	}
-	name = getName()
-	if _, ok2 := userPrivilege[name]; !ok2 {
-		userPrivilege[name] = privilege
+	userMutex.Lock()
+	if _, ok2 := userConnection[name]; ok2 {
+		if userConnection[name] >= config.GlobalConf.MaxOnlyUserConnection {
+			rsp.C = ERR_USER_MAX_ONLY
+			r = util.JsonOut(rsp)
+			userMutex.Unlock()
+			return
+		}
+		userConnection[name] += 1
 	} else {
-		ok = false
-		rsp.C = ERR_SYSTEM_EROR
+		if len(userConnection) >= config.GlobalConf.MaxUserConnection {
+			rsp.C = ERR_USER_MAX_USER
+			r = util.JsonOut(rsp)
+			userMutex.Unlock()
+			return
+		}
+		userConnection[name] = 1
 	}
+	userMutex.Unlock()
 	r = util.JsonOut(rsp)
 	return
-}
-
-func getName() string {
-	getNameMutex.Lock()
-	defer getNameMutex.Unlock()
-	nameInt += 1
-	return fmt.Sprintf("%d", nameInt)
 }
 
 func Init() {
@@ -93,7 +99,6 @@ func Init() {
 }
 
 func init() {
-	userPrivilege = make(map[string]int)
-	nameInt = 0
-	getNameMutex = new(sync.Mutex)
+	userConnection = make(map[string]int)
+	userMutex = new(sync.Mutex)
 }
