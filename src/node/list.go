@@ -1,6 +1,7 @@
 package node
 
 import (
+	"sync"
 	"unsafe"
 )
 
@@ -127,11 +128,14 @@ func (pn *pageNode) mmap(count uint64) bool {
 }
 
 type pageList struct {
-	head *pageNode
-	tail *pageNode
+	head  *pageNode
+	tail  *pageNode
+	mutex *sync.Mutex
 }
 
 func (pl *pageList) allocate(n int) *page {
+	pl.mutex.Lock()
+	defer pl.mutex.Unlock()
 	var count uint64
 	node := pl.head
 	for node != nil {
@@ -160,6 +164,8 @@ func (pl *pageList) allocate(n int) *page {
 }
 
 func (pl *pageList) free(p *page) {
+	pl.mutex.Lock()
+	defer pl.mutex.Unlock()
 	var count uint64
 	for node := pl.head; node != nil; node = node.next {
 		count += node.count
@@ -177,6 +183,8 @@ type freeNode struct {
 }
 
 func init() {
-	globalPageList = pageList{}
+	globalPageList = pageList{
+		mutex: new(sync.Mutex),
+	}
 	pageListSize = 0
 }

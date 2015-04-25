@@ -12,5 +12,5 @@
 		<datatimes>60</datatimes>
 	</data>
 
-	<pagesize>1024</pagesize>
+	<pagesize>256</pagesize>
 </config>
