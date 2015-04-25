@@ -21,6 +21,7 @@ func createAcData(key, value string, start, end int64) (data *acNodeData) {
 		data.free()
 		return nil
 	}
+
 	data.setKeyValue(key, value)
 	return
 }
@@ -75,7 +76,7 @@ func (nd *acNodeData) key() (key []byte) {
 }
 
 func (nd *acNodeData) value() (value []byte) {
-	value = make([]byte, nd.keySize)
+	value = make([]byte, nd.valueSize)
 	copy(value, nd.memory[nd.keySize:nd.keySize+nd.valueSize])
 	return
 }
