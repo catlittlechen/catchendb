@@ -8,6 +8,7 @@ import lgd "code.google.com/p/log4go"
 
 var (
 	channelAC chan []byte
+	acRoot    *acNodeRoot
 )
 
 type acNodeRoot struct {
@@ -220,12 +221,23 @@ func (ac *acNodeRoot) deleteNode(key string) bool {
 
 func (ac *acNodeRoot) output(chans chan []byte, sign []byte) {
 	channelAC = chans
-	ac.preorder()
+	ac.preorder("", ac.node)
 	channelAC <- sign
 }
 
-func (ac *acNodeRoot) preorder() {
-
+func (ac *acNodeRoot) preorder(key string, node *acNodePageElem) {
+	d := node.getData(key)
+	if d != nil {
+		datastr, _ := d.encode()
+		channelAC <- datastr
+	}
+	child := node.getAllChild()
+	key += string(node.key())
+	for _, v := range child {
+		if v != nil {
+			ac.preorder(key, v)
+		}
+	}
 }
 
 func (ac *acNodeRoot) input(line []byte) bool {
@@ -247,6 +259,22 @@ type acNodePageElem struct {
 	status    bool
 
 	data *acNodeData
+}
+
+func (ac *acNodePageElem) getData(key string) (d *data) {
+	if ac.isEnd() {
+		return nil
+	}
+
+	d = new(data)
+	d.Value = string(ac.value())
+	if len(d.Value) == 0 {
+		return nil
+	}
+	d.StartTime = ac.getStartTime()
+	d.EndTime = ac.getEndTime()
+	d.Key = key + string(ac.key())
+	return
 }
 
 func (ac *acNodePageElem) init() {
@@ -292,14 +320,16 @@ func (ac *acNodePageElem) changeStatus() {
 }
 
 func (ac *acNodePageElem) openBlock() {
-	//	if ac.channel != nil {
 	close(ac.channel)
-	//	}
 	ac.channel = make(chan bool)
 }
 
 func (ac *acNodePageElem) getChildNum() int {
 	return ac.childNum
+}
+
+func (ac *acNodePageElem) getAllChild() map[byte]*acNodePageElem {
+	return ac.child
 }
 
 func (ac *acNodePageElem) getChild(child byte) (node *acNodePageElem) {
