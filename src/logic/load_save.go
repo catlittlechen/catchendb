@@ -264,11 +264,8 @@ func saveData() bool {
 }
 
 func autoSaveData() (ret bool) {
-	c := time.Tick(config.GlobalConf.Data.DataTime * time.Second)
-	for _ = range c {
-		saveData()
-	}
-
+	time.Sleep(config.GlobalConf.Data.DataTime * time.Second)
+	saveData()
 	return
 }
 
