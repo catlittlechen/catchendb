@@ -7,7 +7,6 @@ import (
 import lgd "code.google.com/p/log4go"
 
 var (
-	acRoot    *acNodeRoot
 	channelAC chan []byte
 )
 
@@ -383,6 +382,6 @@ func (ac *acNodePageElem) free() {
 }
 
 func acInit() bool {
-	acRoot = new(acNodeRoot)
-	return acRoot.init()
+	iRoot = new(acNodeRoot)
+	return iRoot.init()
 }

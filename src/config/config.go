@@ -20,14 +20,31 @@ type xmlData struct {
 	DataTime time.Duration `xml:"datatimes"`
 }
 
+type xmlSlaveConfig struct {
+	Name string `xml:"name"`
+	IP   string `xml:"ip"`
+	Port int    `xml:"port"`
+}
+
+type xmlSlaveGroup struct {
+	SlaveConfig []xmlSlaveConfig `xml:"slaveconfig"`
+}
+
+type xmlMasterSlave struct {
+	IsMaster bool          `xml:"ismaster"`
+	HashSize int           `xml:"hashsize"`
+	Slave    xmlSlaveGroup `xml:"slavegroup"`
+}
+
 type xmlConfig struct {
-	XMLName               xml.Name  `xml:"config"`
-	Server                xmlServer `xml:"server"`
-	Log                   string    `xml:"log"`
-	Data                  xmlData   `xml:"data"`
-	PageSize              int       `xml:"pagesize"`
-	MaxOnlyUserConnection int       `xml:"maxonlyuserconnection"`
-	MaxUserConnection     int       `xml:"maxuserconnection"`
+	XMLName               xml.Name       `xml:"config"`
+	Server                xmlServer      `xml:"server"`
+	Log                   string         `xml:"log"`
+	Data                  xmlData        `xml:"data"`
+	MasterSlave           xmlMasterSlave `xml:"masterslave"`
+	PageSize              int            `xml:"pagesize"`
+	MaxOnlyUserConnection int            `xml:"maxonlyuserconnection"`
+	MaxUserConnection     int            `xml:"maxuserconnection"`
 }
 
 var GlobalConf xmlConfig

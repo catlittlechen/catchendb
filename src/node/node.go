@@ -15,14 +15,18 @@ const (
 )
 
 var (
-	nowTime  int64
-	treeRoot *nodeRoot
-	channel  chan []byte
+	nowTime int64
 )
 
 type nodeRoot struct {
-	node  *nodePageElem
-	mutex *sync.Mutex
+	node    *nodePageElem
+	mutex   *sync.Mutex
+	channel chan []byte
+}
+
+func (nr *nodeRoot) init() bool {
+	nr.mutex = new(sync.Mutex)
+	return true
 }
 
 func (nr *nodeRoot) input(line []byte) bool {
@@ -35,9 +39,9 @@ func (nr *nodeRoot) input(line []byte) bool {
 }
 
 func (nr *nodeRoot) output(channe chan []byte, sign []byte) {
-	channel = channe
+	nr.channel = channe
 	nr.preorder(nr.node)
-	channel <- sign
+	nr.channel <- sign
 }
 
 func (nr *nodeRoot) preorder(node *nodePageElem) {
@@ -49,7 +53,7 @@ func (nr *nodeRoot) preorder(node *nodePageElem) {
 		d.StartTime = node.getStartTime()
 		d.EndTime = node.getEndTime()
 		datastr, _ := d.encode()
-		channel <- datastr
+		nr.channel <- datastr
 		nr.preorder(node.lChild)
 		nr.preorder(node.rChild)
 	}
@@ -565,9 +569,4 @@ func (n *nodePageElem) setValue(value string) bool {
 func (n *nodePageElem) free() {
 	n.data.free()
 	n.data = nil
-}
-
-func init() {
-	treeRoot = new(nodeRoot)
-	treeRoot.mutex = new(sync.Mutex)
 }
