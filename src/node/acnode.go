@@ -263,9 +263,12 @@ func (ac *acNodeRoot) input(line []byte) bool {
 }
 
 type acNodePageElem struct {
-	parent    *acNodePageElem
-	child     map[byte]*acNodePageElem
-	childNum  int
+	parent *acNodePageElem
+
+	childMutex *sync.Mutex
+	child      map[byte]*acNodePageElem
+	childNum   int
+
 	nodeMutex *sync.Mutex
 	channel   chan bool
 	status    bool
@@ -311,6 +314,7 @@ func (ac *acNodePageElem) init() {
 	ac.nodeMutex = new(sync.Mutex)
 	ac.dataMutex = new(sync.Mutex)
 	ac.child = make(map[byte]*acNodePageElem)
+	ac.childMutex = new(sync.Mutex)
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {
@@ -359,14 +363,23 @@ func (ac *acNodePageElem) getChildNum() int {
 }
 
 func (ac *acNodePageElem) getAllChild() map[byte]*acNodePageElem {
+	ac.childMutex.Lock()
+	defer ac.childMutex.Unlock()
+
 	return ac.child
 }
 
 func (ac *acNodePageElem) getChild(child byte) (node *acNodePageElem) {
+	ac.childMutex.Lock()
+	defer ac.childMutex.Unlock()
+
 	return ac.child[child]
 }
 
 func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
+	ac.childMutex.Lock()
+	defer ac.childMutex.Unlock()
+
 	if ac.child[child] == nil {
 		ac.childNum += 1
 	}
@@ -374,6 +387,9 @@ func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
 }
 
 func (ac *acNodePageElem) delChild(child byte) {
+	ac.childMutex.Lock()
+	defer ac.childMutex.Unlock()
+
 	if ac.child[child] != nil {
 		ac.childNum -= 1
 		ac.child[child] = nil

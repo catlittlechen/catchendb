@@ -168,7 +168,7 @@ func mainloop() {
 			fmt.Printf("ERROR %d \n", rsp.C)
 			continue
 		} else if rsp.D != fmt.Sprintf("%d", countap) {
-			fmt.Println(rsp.D + "\n")
+			fmt.Printf("%d\n", countap)
 		}
 	}
 }
