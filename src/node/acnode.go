@@ -258,7 +258,11 @@ func (ac *acNodeRoot) input(line []byte) bool {
 	if !d.decode(line) {
 		return false
 	}
-	go ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
+	go func() {
+		if !ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime) {
+			lgd.Error("insert node fail! --> data %+v", d)
+		}
+	}()
 	return true
 }
 
@@ -362,11 +366,12 @@ func (ac *acNodePageElem) getChildNum() int {
 	return ac.childNum
 }
 
-func (ac *acNodePageElem) getAllChild() map[byte]*acNodePageElem {
+func (ac *acNodePageElem) getAllChild() (child map[byte]*acNodePageElem) {
 	ac.childMutex.Lock()
 	defer ac.childMutex.Unlock()
 
-	return ac.child
+	child = ac.child
+	return
 }
 
 func (ac *acNodePageElem) getChild(child byte) (node *acNodePageElem) {
@@ -376,14 +381,18 @@ func (ac *acNodePageElem) getChild(child byte) (node *acNodePageElem) {
 	return ac.child[child]
 }
 
-func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
+func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) bool {
 	ac.childMutex.Lock()
 	defer ac.childMutex.Unlock()
 
 	if ac.child[child] == nil {
 		ac.childNum += 1
+	} else {
+		lgd.Error("node has a child with byte[%s]", string(child))
+		return false
 	}
 	ac.child[child] = node
+	return true
 }
 
 func (ac *acNodePageElem) delChild(child byte) {
@@ -481,6 +490,8 @@ func (ac *acNodePageElem) free() {
 	defer ac.dataMutex.Unlock()
 	ac.data.free()
 	ac.data = nil
+	ac.child = nil
+	ac.parent = nil
 }
 
 func acInit() bool {
