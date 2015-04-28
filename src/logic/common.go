@@ -7,10 +7,6 @@ type Rsp struct {
 }
 
 const (
-	TYPE_STRING = "string"
-)
-
-const (
 	CMD_AUT    = "aut"
 	CMD_UADD   = "useradd"
 	CMD_UDEL   = "userdelete"

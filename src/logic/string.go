@@ -15,7 +15,7 @@ var (
 )
 
 func handleSet(keyword url.Values) []byte {
-	key := TYPE_STRING + "&" + keyword.Get(URL_KEY)
+	key := keyword.Get(URL_KEY)
 	value := keyword.Get(URL_VALUE)
 	rsp := Rsp{
 		C: 0,
@@ -28,7 +28,7 @@ func handleSet(keyword url.Values) []byte {
 }
 
 func handleGet(keyword url.Values) []byte {
-	key := TYPE_STRING + "&" + keyword.Get(URL_KEY)
+	key := keyword.Get(URL_KEY)
 	rsp := Rsp{
 		C: 0,
 	}
@@ -41,7 +41,7 @@ func handleGet(keyword url.Values) []byte {
 }
 
 func handleDel(keyword url.Values) []byte {
-	key := TYPE_STRING + "&" + keyword.Get(URL_KEY)
+	key := keyword.Get(URL_KEY)
 	rsp := Rsp{
 		C: 0,
 	}
@@ -53,7 +53,7 @@ func handleDel(keyword url.Values) []byte {
 }
 
 func handleSetEx(keyword url.Values) []byte {
-	key := TYPE_STRING + "&" + keyword.Get(URL_KEY)
+	key := keyword.Get(URL_KEY)
 	rsp := Rsp{
 		C: 0,
 	}
@@ -77,7 +77,7 @@ func handleSetEx(keyword url.Values) []byte {
 }
 
 func handleDelay(keyword url.Values) []byte {
-	key := TYPE_STRING + "&" + keyword.Get(URL_KEY)
+	key := keyword.Get(URL_KEY)
 	rsp := Rsp{
 		C: 0,
 	}
@@ -94,7 +94,7 @@ func handleDelay(keyword url.Values) []byte {
 }
 
 func handleExpire(keyword url.Values) []byte {
-	key := TYPE_STRING + "&" + keyword.Get(URL_KEY)
+	key := keyword.Get(URL_KEY)
 	rsp := Rsp{
 		C: 0,
 	}
@@ -111,7 +111,7 @@ func handleExpire(keyword url.Values) []byte {
 }
 
 func handleTTL(keyword url.Values) []byte {
-	key := TYPE_STRING + "&" + keyword.Get(URL_KEY)
+	key := keyword.Get(URL_KEY)
 	rsp := Rsp{
 		C: 0,
 	}
@@ -126,7 +126,7 @@ func handleTTL(keyword url.Values) []byte {
 }
 
 func handleTTS(keyword url.Values) []byte {
-	key := TYPE_STRING + "&" + keyword.Get(URL_KEY)
+	key := keyword.Get(URL_KEY)
 	rsp := Rsp{
 		C: 0,
 	}
