@@ -51,25 +51,11 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 	ok := false
 	lenc := 0
 	index := 0
-	status := false
 	var acKey []byte
 	for {
-		if status {
-			<-node.channel
-			status = false
-		}
+		node.lock()
 		child := node.getChild(key[0])
 		if child == nil {
-			node.lock()
-			if node.isChanging() {
-				status = true
-				node.unlock()
-				continue
-			}
-			if node.getChild(key[0]) != child {
-				node.unlock()
-				continue
-			}
 			child = ac.createNode(key, value, start, end, node)
 			if child == nil {
 				node.unlock()
@@ -80,78 +66,47 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			return true
 		}
 		ok, lenc, index = child.compareKey(key)
-		if !ok || lenc == 1 {
-			node.lock()
-			if node.isChanging() {
-				status = true
-				node.unlock()
-				continue
-			}
-			if node.getChild(key[0]) != child {
-				node.unlock()
-				continue
-			}
-			node.changeStatus()
-			node.unlock()
-		}
 		acKey = child.key()
 		if !ok {
 			child2 := ac.createNode(key[:index], "", 0, 0, node)
 			child3 := ac.createNode(key[index:], value, start, end, child2)
 			if child2 == nil || child3 == nil {
-				node.lock()
-				node.changeStatus()
-				node.openBlock()
 				node.unlock()
 				return false
 			}
-			node.lock()
 			child.setKey(string(acKey[index:]))
 			node.setChild(key[0], child2)
 			child2.setChild(key[index], child3)
 			child2.setChild(acKey[index], child)
 			child.setParent(child2)
-			node.changeStatus()
-			node.openBlock()
 			node.unlock()
 			return true
 		}
 		switch lenc {
 		case -1:
 			key = key[index:]
+			node.unlock()
 			node = child
 		case 0:
 			if child.setValue(value) {
 				child.setStartTime(start)
 				child.setEndTime(end)
 			} else if !ac.createData(key, value, start, end, child) {
-				node.lock()
-				node.changeStatus()
-				node.openBlock()
 				node.unlock()
 				return false
 			}
-			node.lock()
-			node.changeStatus()
-			node.openBlock()
 			node.unlock()
 			return true
 		case 1:
 			child2 := ac.createNode(key, value, start, end, node)
 			if child2 == nil {
-				node.lock()
-				node.changeStatus()
-				node.openBlock()
 				node.unlock()
 				return false
 			}
-			node.lock()
 			node.setChild(key[0], child2)
 			child2.setChild(acKey[index], child)
 			child.setKey(string(acKey[index:]))
 			child.setParent(child2)
-			node.changeStatus()
-			node.openBlock()
 			node.unlock()
 			return true
 		}
@@ -215,10 +170,6 @@ func (ac *acNodeRoot) deleteNode(key string) bool {
 			break
 		}
 		parent.lock()
-		if parent.isChanging() {
-			parent.unlock()
-			continue
-		}
 		if parent.getChild((node.key())[0]) != node {
 			parent.unlock()
 			continue
@@ -274,8 +225,6 @@ type acNodePageElem struct {
 	childNum   int
 
 	nodeMutex *sync.Mutex
-	channel   chan bool
-	status    bool
 
 	dataMutex *sync.Mutex
 	data      *acNodeData
@@ -314,7 +263,6 @@ func (ac *acNodePageElem) getData(key string) (d *data) {
 }
 
 func (ac *acNodePageElem) init() {
-	ac.channel = make(chan bool)
 	ac.nodeMutex = new(sync.Mutex)
 	ac.dataMutex = new(sync.Mutex)
 	ac.child = make(map[byte]*acNodePageElem)
@@ -349,19 +297,6 @@ func (ac *acNodePageElem) unlock() {
 	ac.nodeMutex.Unlock()
 }
 
-func (ac *acNodePageElem) isChanging() bool {
-	return ac.status
-}
-
-func (ac *acNodePageElem) changeStatus() {
-	ac.status = !ac.status
-}
-
-func (ac *acNodePageElem) openBlock() {
-	close(ac.channel)
-	ac.channel = make(chan bool)
-}
-
 func (ac *acNodePageElem) getChildNum() int {
 	return ac.childNum
 }
@@ -381,18 +316,14 @@ func (ac *acNodePageElem) getChild(child byte) (node *acNodePageElem) {
 	return ac.child[child]
 }
 
-func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) bool {
+func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
 	ac.childMutex.Lock()
 	defer ac.childMutex.Unlock()
 
 	if ac.child[child] == nil {
 		ac.childNum += 1
-	} else {
-		lgd.Error("node has a child with byte[%s]", string(child))
-		return false
 	}
 	ac.child[child] = node
-	return true
 }
 
 func (ac *acNodePageElem) delChild(child byte) {
