@@ -1,6 +1,7 @@
 package node
 
 import (
+	"runtime/debug"
 	"sync"
 )
 
@@ -26,8 +27,7 @@ func (ac *acNodeRoot) init() bool {
 func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *acNodePageElem) (node *acNodePageElem) {
 	node = new(acNodePageElem)
 	node.init()
-	node.data = createAcData(key, value, start, end)
-	if node.data == nil {
+	if !node.setData(key, value, start, end) {
 		return nil
 	}
 	node.setParent(parent)
@@ -35,22 +35,24 @@ func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *ac
 }
 
 func (ac *acNodeRoot) createData(key, value string, start, end int64, node *acNodePageElem) bool {
-	data := createAcData(key, value, start, end)
-	if data == nil {
-		return false
-	}
-	data2 := node.data
-	node.data = data
-	data2.free()
-	return true
+	return node.setData(key, value, start, end)
 }
 
 func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
+	defer func() {
+		if re := recover(); re != nil {
+			lgd.Error("recover %s", re)
+			lgd.Error("stack %s", debug.Stack())
+			lgd.Info("key %s", key)
+		}
+	}()
+
 	node := ac.node
 	ok := false
 	lenc := 0
 	index := 0
 	status := false
+	var acKey []byte
 	for {
 		if status {
 			<-node.channel
@@ -92,8 +94,8 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			node.changeStatus()
 			node.unlock()
 		}
+		acKey = child.key()
 		if !ok {
-			acKey := child.key()
 			child2 := ac.createNode(key[:index], "", 0, 0, node)
 			child3 := ac.createNode(key[index:], value, start, end, child2)
 			if child2 == nil || child3 == nil {
@@ -135,7 +137,6 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			node.unlock()
 			return true
 		case 1:
-			acKey := child.key()
 			child2 := ac.createNode(key, value, start, end, node)
 			if child2 == nil {
 				node.lock()
@@ -160,21 +161,11 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 }
 
 func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
-	node = ac.node
+	node = ac.node.getChild(key[0])
 	index := 0
 	ok := false
 	lenc := 0
-	status := false
-	child := ac.node
 	for node != nil {
-		if status {
-			<-node.channel
-			status = false
-		}
-		child = ac.node.getChild(key[0])
-		if child == nil {
-			return
-		}
 		ok, lenc, index = node.compareKey(key)
 		if !ok || lenc == 1 {
 			return nil
@@ -183,6 +174,7 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 			return node
 		}
 		key = key[index:]
+		node = node.getChild(key[0])
 	}
 	return
 }
@@ -266,7 +258,7 @@ func (ac *acNodeRoot) input(line []byte) bool {
 	if !d.decode(line) {
 		return false
 	}
-	ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
+	go ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
 	return true
 }
 
@@ -278,7 +270,24 @@ type acNodePageElem struct {
 	channel   chan bool
 	status    bool
 
-	data *acNodeData
+	dataMutex *sync.Mutex
+	data      *acNodeData
+}
+
+func (ac *acNodePageElem) setData(key, value string, start, end int64) bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
+
+	data := createAcData(key, value, start, end)
+	if data == nil {
+		return false
+	}
+	data2 := ac.data
+	ac.data = data
+	if data2 != nil {
+		data2.free()
+	}
+	return true
 }
 
 func (ac *acNodePageElem) getData(key string) (d *data) {
@@ -300,6 +309,7 @@ func (ac *acNodePageElem) getData(key string) (d *data) {
 func (ac *acNodePageElem) init() {
 	ac.channel = make(chan bool)
 	ac.nodeMutex = new(sync.Mutex)
+	ac.dataMutex = new(sync.Mutex)
 	ac.child = make(map[byte]*acNodePageElem)
 }
 
@@ -379,57 +389,80 @@ func (ac *acNodePageElem) getParent() *acNodePageElem {
 }
 
 func (ac *acNodePageElem) isStart() bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.isStart()
 }
 
 func (ac *acNodePageElem) isEnd() bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.isEnd()
 }
 
 func (ac *acNodePageElem) getStartTime() int64 {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.getStartTime()
 }
 
 func (ac *acNodePageElem) getEndTime() int64 {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.getEndTime()
 }
 
 func (ac *acNodePageElem) setTime(startTime, endTime int64) bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.setStartTime(startTime) && ac.data.setEndTime(endTime)
 }
 
 func (ac *acNodePageElem) setStartTime(startTime int64) bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.setStartTime(startTime)
 }
 
 func (ac *acNodePageElem) setEndTime(endTime int64) bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.setEndTime(endTime)
 }
 
 func (ac *acNodePageElem) key() (key []byte) {
-	if ac.data == nil {
-		lgd.Error("Debug!")
-	}
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.key()
 }
 
 func (ac *acNodePageElem) value() (value []byte) {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.value()
 }
 
 func (ac *acNodePageElem) setKeyValue(key, value string) bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.setKeyValue(key, value)
 }
 
 func (ac *acNodePageElem) setKey(key string) bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.setKey(key)
 }
 
 func (ac *acNodePageElem) setValue(value string) bool {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	return ac.data.setValue(value)
 }
 
 func (ac *acNodePageElem) free() {
+	ac.dataMutex.Lock()
+	defer ac.dataMutex.Unlock()
 	ac.data.free()
 	ac.data = nil
 }

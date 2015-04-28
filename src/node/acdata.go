@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+import lgd "code.google.com/p/log4go"
+
 type acNodeData struct {
 	size      int
 	startTime int64
@@ -71,6 +73,9 @@ func (nd *acNodeData) isEnd() bool {
 
 func (nd *acNodeData) key() (key []byte) {
 	key = make([]byte, nd.keySize)
+	if len(nd.memory) < nd.keySize {
+		lgd.Info("Debug! key %d memory %d", nd.keySize, len(nd.memory))
+	}
 	copy(key, nd.memory[:nd.keySize])
 	return
 }
