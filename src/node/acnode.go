@@ -35,19 +35,17 @@ func (ac *acNodeRoot) createNode(key, value string, start, end int64, parent *ac
 }
 
 func (ac *acNodeRoot) createData(key, value string, start, end int64, node *acNodePageElem) bool {
-	node.data.free()
-	node.data = nil
-	node.data = createAcData(key, value, start, end)
-	if node.data == nil {
+	data := createAcData(key, value, start, end)
+	if data == nil {
 		return false
 	}
+	data2 := node.data
+	node.data = data
+	data2.free()
 	return true
 }
 
 func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
-	defer func() {
-		lgd.Info("ok")
-	}()
 	node := ac.node
 	ok := false
 	lenc := 0
@@ -72,6 +70,7 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			}
 			child = ac.createNode(key, value, start, end, node)
 			if child == nil {
+				node.unlock()
 				return false
 			}
 			node.setChild(key[0], child)
@@ -95,13 +94,17 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 		}
 		if !ok {
 			acKey := child.key()
-			child.setKey(string(acKey[index:]))
 			child2 := ac.createNode(key[:index], "", 0, 0, node)
 			child3 := ac.createNode(key[index:], value, start, end, child2)
 			if child2 == nil || child3 == nil {
+				node.lock()
+				node.changeStatus()
+				node.openBlock()
+				node.unlock()
 				return false
 			}
 			node.lock()
+			child.setKey(string(acKey[index:]))
 			node.setChild(key[0], child2)
 			child2.setChild(key[index], child3)
 			child2.setChild(acKey[index], child)
@@ -120,6 +123,10 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 				child.setStartTime(start)
 				child.setEndTime(end)
 			} else if !ac.createData(key, value, start, end, child) {
+				node.lock()
+				node.changeStatus()
+				node.openBlock()
+				node.unlock()
 				return false
 			}
 			node.lock()
@@ -131,6 +138,10 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			acKey := child.key()
 			child2 := ac.createNode(key, value, start, end, node)
 			if child2 == nil {
+				node.lock()
+				node.changeStatus()
+				node.openBlock()
+				node.unlock()
 				return false
 			}
 			node.lock()
@@ -149,11 +160,21 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 }
 
 func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
-	node = ac.node.getChild(key[0])
+	node = ac.node
 	index := 0
 	ok := false
 	lenc := 0
+	status := false
+	child := ac.node
 	for node != nil {
+		if status {
+			<-node.channel
+			status = false
+		}
+		child = ac.node.getChild(key[0])
+		if child == nil {
+			return
+		}
 		ok, lenc, index = node.compareKey(key)
 		if !ok || lenc == 1 {
 			return nil
@@ -162,7 +183,6 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 			return node
 		}
 		key = key[index:]
-		node = node.getChild(key[0])
 	}
 	return
 }
@@ -246,7 +266,7 @@ func (ac *acNodeRoot) input(line []byte) bool {
 	if !d.decode(line) {
 		return false
 	}
-	go ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
+	ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
 	return true
 }
 
@@ -387,6 +407,9 @@ func (ac *acNodePageElem) setEndTime(endTime int64) bool {
 }
 
 func (ac *acNodePageElem) key() (key []byte) {
+	if ac.data == nil {
+		lgd.Error("Debug!")
+	}
 	return ac.data.key()
 }
 
