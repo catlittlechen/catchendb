@@ -138,7 +138,6 @@ func LoadData() bool {
 	length = lengthData
 	lengthBool := true
 	for {
-		lgd.Debug(length)
 		l = make([]byte, length)
 		lens, err = fp.Read(l)
 		if err != nil {
@@ -150,7 +149,6 @@ func LoadData() bool {
 			}
 		}
 		if lengthBool {
-			lgd.Debug(string(l))
 			length, err = strconv.Atoi(string(l))
 			if err != nil {
 				lgd.Error("file[%s] length fail! data[%s]", filename, l)
@@ -246,7 +244,6 @@ func saveData() bool {
 		datastr = store.Encode(datastr)
 		datastr = append([]byte(fmt.Sprintf(printsign, len(datastr))), datastr...)
 		_, err = fp.Write(datastr)
-		lgd.Debug(string(datastr))
 		if err != nil {
 			lgd.Error("file[%s] write fail! err[%s]", filename, err)
 			return false
