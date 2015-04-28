@@ -28,7 +28,6 @@ func handleServer(conn *net.TCPConn) {
 			lgd.Error("stack %s", debug.Stack())
 		}
 	}()
-	defer conn.Close()
 
 	data := make([]byte, 1024)
 	count, err := conn.Read(data)
@@ -36,6 +35,7 @@ func handleServer(conn *net.TCPConn) {
 		lgd.Error("read error[%s]", err)
 		return
 	}
+	defer conn.Close()
 	ok, name, res := logic.AUT(data[:count])
 	conn.Write(res)
 	if !ok {
