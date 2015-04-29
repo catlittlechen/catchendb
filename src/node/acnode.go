@@ -52,17 +52,19 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 	lenc := 0
 	index := 0
 	var acKey []byte
+	var k byte
 	for {
-		node.lock()
-		child := node.getChild(key[0])
+		k = key[0]
+		node.lock(k)
+		child := node.getChild(k)
 		if child == nil {
 			child = ac.createNode(key, value, start, end, node)
 			if child == nil {
-				node.unlock()
+				node.unlock(k)
 				return false
 			}
-			node.setChild(key[0], child)
-			node.unlock()
+			node.setChild(k, child)
+			node.unlock(k)
 			return true
 		}
 		ok, lenc, index = child.compareKey(key)
@@ -71,43 +73,43 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			child2 := ac.createNode(key[:index], "", 0, 0, node)
 			child3 := ac.createNode(key[index:], value, start, end, child2)
 			if child2 == nil || child3 == nil {
-				node.unlock()
+				node.unlock(k)
 				return false
 			}
 			child.setKey(string(acKey[index:]))
-			node.setChild(key[0], child2)
+			node.setChild(k, child2)
 			child2.setChild(key[index], child3)
 			child2.setChild(acKey[index], child)
 			child.setParent(child2)
-			node.unlock()
+			node.unlock(k)
 			return true
 		}
 		switch lenc {
 		case -1:
+			node.unlock(k)
 			key = key[index:]
-			node.unlock()
 			node = child
 		case 0:
 			if child.setValue(value) {
 				child.setStartTime(start)
 				child.setEndTime(end)
 			} else if !ac.createData(key, value, start, end, child) {
-				node.unlock()
+				node.unlock(k)
 				return false
 			}
-			node.unlock()
+			node.unlock(k)
 			return true
 		case 1:
 			child2 := ac.createNode(key, value, start, end, node)
 			if child2 == nil {
-				node.unlock()
+				node.unlock(k)
 				return false
 			}
-			node.setChild(key[0], child2)
+			node.setChild(k, child2)
 			child2.setChild(acKey[index], child)
 			child.setKey(string(acKey[index:]))
 			child.setParent(child2)
-			node.unlock()
+			node.unlock(k)
 			return true
 		}
 
@@ -169,15 +171,16 @@ func (ac *acNodeRoot) deleteNode(key string) bool {
 		if parent == nil {
 			break
 		}
-		parent.lock()
-		if parent.getChild((node.key())[0]) != node {
-			parent.unlock()
+		k := (node.key())[0]
+		parent.lock(k)
+		if parent.getChild(k) != node {
+			parent.unlock(k)
 			continue
 		}
-		parent.delChild((node.key())[0])
+		parent.delChild(k)
 		node.free()
 		node = parent
-		parent.unlock()
+		parent.unlock(k)
 	}
 	return true
 }
@@ -224,7 +227,8 @@ type acNodePageElem struct {
 	child      map[byte]*acNodePageElem
 	childNum   int
 
-	nodeMutex *sync.Mutex
+	nodeChildMutex map[byte]*sync.Mutex
+	nodeMutex      *sync.Mutex
 
 	dataMutex *sync.Mutex
 	data      *acNodeData
@@ -267,6 +271,7 @@ func (ac *acNodePageElem) init() {
 	ac.dataMutex = new(sync.Mutex)
 	ac.child = make(map[byte]*acNodePageElem)
 	ac.childMutex = new(sync.Mutex)
+	ac.nodeChildMutex = make(map[byte]*sync.Mutex)
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {
@@ -289,12 +294,30 @@ func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) 
 	return
 }
 
-func (ac *acNodePageElem) lock() {
+func (ac *acNodePageElem) lock(key byte) {
 	ac.nodeMutex.Lock()
+	var mutex *sync.Mutex
+	ok := false
+	if mutex, ok = ac.nodeChildMutex[key]; !ok {
+		mutex = new(sync.Mutex)
+		ac.nodeChildMutex[key] = mutex
+	}
+	ac.nodeMutex.Unlock()
+
+	mutex.Lock()
 }
 
-func (ac *acNodePageElem) unlock() {
+func (ac *acNodePageElem) unlock(key byte) {
+	ac.nodeMutex.Lock()
+	var mutex *sync.Mutex
+	ok := false
+	if mutex, ok = ac.nodeChildMutex[key]; !ok {
+		lgd.Error("%+v", ac.nodeChildMutex)
+		lgd.Error(uint8(key))
+	}
 	ac.nodeMutex.Unlock()
+
+	mutex.Unlock()
 }
 
 func (ac *acNodePageElem) getChildNum() int {
@@ -423,6 +446,7 @@ func (ac *acNodePageElem) free() {
 	ac.data = nil
 	ac.child = nil
 	ac.parent = nil
+	ac.childMutex = nil
 }
 
 func acInit() bool {
