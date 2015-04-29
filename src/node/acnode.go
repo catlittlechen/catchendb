@@ -177,6 +177,8 @@ func (ac *acNodeRoot) setEndTime(key string, end int64) bool {
 func (ac *acNodeRoot) deleteNode(key string) bool {
 	node := ac.search(key)
 	node.setValue("")
+	node.setStartTime(0)
+	node.setEndTime(0)
 
 	for node.getChildNum() == 0 {
 		parent := node.getParent()
