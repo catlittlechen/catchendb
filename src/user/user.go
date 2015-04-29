@@ -15,8 +15,8 @@ type userInfo struct {
 
 func (u *userInfo) init(user, pass string, pri int) {
 	u.Username = user
-	u.Password = pass
-	u.Privilege = pri
+	u.setPassword(pass)
+	u.setPrivilege(pri)
 }
 
 func (u *userInfo) verifyPassword(password string) bool {
