@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/url"
 	"strings"
@@ -24,6 +23,8 @@ var username = flag.String("u", "root", "username")
 var password = flag.String("p", "root", "password")
 var host = flag.String("h", "127.0.0.1", "host")
 var port = flag.Int("P", 13570, "port")
+var capt = flag.Int("c", 13570, "capt")
+var onlyget = flag.Bool("o", false, "onlyget")
 
 func Init() bool {
 	flag.Parse()
@@ -83,19 +84,60 @@ func mainloop() {
 		return
 	}
 
-	r := rand.New(rand.NewSource(99))
 	countap := 1
 	fmt.Println(time.Now().Unix())
+	var code string
+	ok := false
+	var fun func([]byte) []byte
 	for {
 		countap += 1
-		if countap == 1000000 {
+		if countap == *capt {
 			fmt.Println(time.Now().Unix())
 			break
 		}
-		bp = fmt.Sprintf("set %d %d", r.Int63(), r.Int63())
+		if !*onlyget {
+			bp = fmt.Sprintf("set %d %d", countap, countap)
 
-		code := (strings.Split(bp, string(' ')))[0]
-		fun, ok := handle.GetHandle(code)
+			code = (strings.Split(bp, string(' ')))[0]
+			fun, ok = handle.GetHandle(code)
+			if !ok {
+				fmt.Printf("wrong command[%s]\n", code)
+				continue
+			}
+			data2 = fun([]byte(bp))
+			if data2 == nil {
+				fmt.Println("wrong argv\n")
+				continue
+			}
+			_, err = conn.Write(data2)
+			if err != nil {
+				fmt.Println("Fatal Error " + err.Error() + "\n")
+				return
+			}
+			count, err = conn.Read(data)
+			if err != nil {
+				fmt.Println("Fatal Error " + err.Error() + "\n")
+				return
+			}
+
+			var rsp Rsp
+			err = json.Unmarshal(data[:count], &rsp)
+			if err != nil {
+				fmt.Println("Fatal Data " + string(data[:count]) + "Error " + err.Error() + "\n")
+				return
+			}
+
+			if rsp.C != 0 {
+				fmt.Printf("ERROR %d \n", rsp.C)
+				continue
+			} else if len(rsp.D) != 0 {
+				fmt.Println(rsp.D + "\n")
+			}
+		}
+		bp = fmt.Sprintf("get %d", countap)
+
+		code = (strings.Split(bp, string(' ')))[0]
+		fun, ok = handle.GetHandle(code)
 		if !ok {
 			fmt.Printf("wrong command[%s]\n", code)
 			continue
@@ -116,7 +158,6 @@ func mainloop() {
 			return
 		}
 
-		var rsp Rsp
 		err = json.Unmarshal(data[:count], &rsp)
 		if err != nil {
 			fmt.Println("Fatal Data " + string(data[:count]) + "Error " + err.Error() + "\n")
@@ -126,8 +167,8 @@ func mainloop() {
 		if rsp.C != 0 {
 			fmt.Printf("ERROR %d \n", rsp.C)
 			continue
-		} else if len(rsp.D) != 0 {
-			fmt.Println(rsp.D + "\n")
+		} else if rsp.D != fmt.Sprintf("%d", countap) {
+			fmt.Printf("%d\n", countap)
 		}
 	}
 }

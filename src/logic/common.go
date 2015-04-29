@@ -7,10 +7,6 @@ type Rsp struct {
 }
 
 const (
-	TYPE_STRING = "string"
-)
-
-const (
 	CMD_AUT    = "aut"
 	CMD_UADD   = "useradd"
 	CMD_UDEL   = "userdelete"
@@ -38,6 +34,8 @@ const (
 	ERR_USER_DUPLICATE = 201
 	ERR_USER_NOT_EXIST = 202
 	ERR_USER_PRIVILEGE = 203
+	ERR_USER_MAX_ONLY  = 204
+	ERR_USER_MAX_USER  = 205
 
 	ERR_CMD_SET    = 301
 	ERR_CMD_DEL    = 302

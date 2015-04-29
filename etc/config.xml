@@ -12,5 +12,19 @@
 		<datatimes>60</datatimes>
 	</data>
 
+	<masterslave>
+		<ismaster>true</ismaster>
+		<hashsize>10</hashsize>
+		<slavegroup>
+			<slaveconfig>
+				<name>demo</name>
+				<ip>172.16.5.29</ip>
+				<port>10086</port>
+			</slaveconfig>
+		</slavegroup>
+	</masterslave>
+
 	<pagesize>256</pagesize>
+	<maxonlyuserconnection>10</maxonlyuserconnection>
+	<maxuserconnection>10</maxuserconnection>
 </config>
