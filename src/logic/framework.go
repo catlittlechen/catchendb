@@ -36,7 +36,7 @@ func mapAction(keyword url.Values, privilege int) []byte {
 				return util.JsonOut(rsp)
 			}
 		case TYPE_X:
-			if privilege < 0 || privilege > 7 && privilege%2 != 1 {
+			if privilege != 1 && privilege != 3 && privilege != 7 {
 				rsp.C = ERR_ACCESS_DENIED
 				return util.JsonOut(rsp)
 			}
