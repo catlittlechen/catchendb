@@ -7,12 +7,13 @@ import (
 import lgd "code.google.com/p/log4go"
 
 type acNodeData struct {
-	size      int
-	startTime int64
-	endTime   int64
-	keySize   int
-	valueSize int
-	memory    []byte
+	lastModifyTime int64
+	size           int
+	startTime      int64
+	endTime        int64
+	keySize        int
+	valueSize      int
+	memory         []byte
 }
 
 func createAcData(key, value string, start, end int64) (data *acNodeData) {
@@ -29,11 +30,15 @@ func createAcData(key, value string, start, end int64) (data *acNodeData) {
 }
 
 func (nd *acNodeData) init() {
-
+	nd.lastModifyTime = time.Now().Unix()
 }
 
 func (nd *acNodeData) free() {
 	nd.memory = nil
+}
+
+func (nd *acNodeData) getLastModifyTime() int64 {
+	return nd.lastModifyTime
 }
 
 func (nd *acNodeData) getStartTime() int64 {
@@ -41,6 +46,7 @@ func (nd *acNodeData) getStartTime() int64 {
 }
 
 func (nd *acNodeData) setStartTime(start int64) bool {
+	nd.lastModifyTime = time.Now().Unix()
 	nd.startTime = start
 	return true
 }
@@ -60,6 +66,7 @@ func (nd *acNodeData) setEndTime(end int64) bool {
 	if end != 0 && time.Now().Unix() > end {
 		return false
 	}
+	nd.lastModifyTime = time.Now().Unix()
 	nd.endTime = end
 	return true
 }
@@ -87,6 +94,7 @@ func (nd *acNodeData) value() (value []byte) {
 }
 
 func (nd *acNodeData) setKeyValue(key, value string) bool {
+	nd.lastModifyTime = time.Now().Unix()
 	nd.keySize = len(key)
 	nd.valueSize = len(value)
 	copy(nd.memory[:nd.keySize], []byte(key))
@@ -101,6 +109,7 @@ func (nd *acNodeData) setKey(key string) bool {
 	if size > nd.size {
 		return false
 	}
+	nd.lastModifyTime = time.Now().Unix()
 	copy(nd.memory[:nd.keySize], []byte(key))
 	copy(nd.memory[nd.keySize:nd.keySize+nd.valueSize], []byte(value))
 	return true
@@ -109,6 +118,7 @@ func (nd *acNodeData) setKey(key string) bool {
 func (nd *acNodeData) setValue(value string) bool {
 	size := nd.keySize + len(value)
 	if size < nd.size {
+		nd.lastModifyTime = time.Now().Unix()
 		nd.valueSize = len(value)
 		copy(nd.memory[nd.keySize:nd.keySize+nd.valueSize], []byte(value))
 		return true
