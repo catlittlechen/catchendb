@@ -118,20 +118,32 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 }
 
 func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
-	node = ac.node.getChild(key[0])
+	parent := ac.node
+	child := ac.node
 	index := 0
 	ok := false
 	lenc := 0
-	for node != nil {
-		ok, lenc, index = node.compareKey(key)
+	var k byte
+	for {
+		k = key[0]
+		parent.lock(k)
+		child = parent.getChild(k)
+		if child == nil {
+			parent.unlock(k)
+			return nil
+		}
+		ok, lenc, index = child.compareKey(key)
 		if !ok || lenc == 1 {
+			parent.unlock(k)
 			return nil
 		}
 		if lenc == 0 {
-			return node
+			parent.unlock(k)
+			return child
 		}
+		parent.unlock(k)
 		key = key[index:]
-		node = node.getChild(key[0])
+		parent = child
 	}
 	return
 }
