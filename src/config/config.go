@@ -20,20 +20,9 @@ type xmlData struct {
 	DataTime time.Duration `xml:"datatimes"`
 }
 
-type xmlSlaveConfig struct {
-	Name string `xml:"name"`
-	IP   string `xml:"ip"`
-	Port int    `xml:"port"`
-}
-
-type xmlSlaveGroup struct {
-	SlaveConfig []xmlSlaveConfig `xml:"slaveconfig"`
-}
-
 type xmlMasterSlave struct {
-	IsMaster bool          `xml:"ismaster"`
-	HashSize int           `xml:"hashsize"`
-	Slave    xmlSlaveGroup `xml:"slavegroup"`
+	IsMaster bool `xml:"ismaster"`
+	HashSize int  `xml:"hashsize"`
 }
 
 type xmlConfig struct {
