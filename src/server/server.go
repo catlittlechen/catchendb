@@ -57,7 +57,7 @@ func mainloop() {
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", config.GlobalConf.Server.BindAddr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ResolveTCPAddr[%s] error[%s]", config.GlobalConf.Server.Path, err)
+		fmt.Fprintf(os.Stderr, "ResolveTCPAddr[%s] error[%s]", config.GlobalConf.Server.BindAddr, err)
 		return
 	}
 	listener, err := net.ListenTCP("tcp", tcpAddr)
@@ -102,7 +102,9 @@ func main() {
 		return
 	}
 	lgd.Info("start")
-	logic.Init()
+	if !logic.Init() {
+		return
+	}
 	mainloop()
 	return
 }

@@ -92,10 +92,14 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 	return
 }
 
-func Init() {
+func Init() bool {
 	initString()
 	initUser()
+	if !config.GlobalConf.MasterSlave.IsMaster && !replication() {
+		return false
+	}
 	go autoSaveData()
+	return true
 }
 
 func init() {
