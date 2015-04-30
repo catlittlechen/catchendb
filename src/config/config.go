@@ -21,8 +21,9 @@ type xmlData struct {
 }
 
 type xmlMasterSlave struct {
-	IsMaster bool `xml:"ismaster"`
-	HashSize int  `xml:"hashsize"`
+	IsMaster    bool `xml:"ismaster"`
+	HashSize    int  `xml:"hashsize"`
+	ReFlushTime int  `xml:"reflushs"`
 }
 
 type xmlConfig struct {

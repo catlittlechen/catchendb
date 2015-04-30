@@ -13,8 +13,9 @@
 	</data>
 
 	<masterslave>
-		<ismaster>true</ismaster>
+		<ismaster>false</ismaster>
 		<hashsize>10</hashsize>
+		<reflushs>60</reflushs>
 	</masterslave>
 
 	<pagesize>256</pagesize>

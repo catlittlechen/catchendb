@@ -48,7 +48,7 @@ func handleServer(conn *net.TCPConn) {
 			logic.DisConnection(name)
 			return
 		}
-		res := logic.LYW(data[:count], name)
+		res := logic.LYW(data[:count], name, false)
 		conn.Write(res)
 	}
 }

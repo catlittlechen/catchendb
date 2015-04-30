@@ -33,7 +33,6 @@ func (pn *pageNode) allocate(n int) *page {
 			if freenode.lBound == freenode.rBound {
 				freenode.pre.next = freenode.next
 			}
-			lgd.Debug("id[%d]", id)
 			p := (*page)(unsafe.Pointer(&pn.pagebyte[int(id-pn.fid)*pageSize]))
 			p.id = id
 			p.count = uint16(n)
