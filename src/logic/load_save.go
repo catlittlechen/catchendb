@@ -206,6 +206,7 @@ func saveData() bool {
 		outPutBoolen = false
 	}()
 
+	lastModifyTime = time.Now().Unix()
 	filename := config.GlobalConf.Data.DataPath + config.GlobalConf.Data.DataName + ".tmp"
 	lgd.Trace("start saveData[%s] at the time[%d]", filename, time.Now().Unix())
 

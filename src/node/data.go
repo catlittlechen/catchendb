@@ -36,12 +36,11 @@ const (
 )
 
 type nodeData struct {
-	ptr            *page
-	lastModifyTime int64
-	startTime      int64
-	endTime        int64
-	keySize        int
-	valueSize      int
+	ptr       *page
+	startTime int64
+	endTime   int64
+	keySize   int
+	valueSize int
 }
 
 func createData(key, value string, start, end int64) (data *nodeData) {
@@ -61,15 +60,10 @@ func createData(key, value string, start, end int64) (data *nodeData) {
 }
 
 func (nd *nodeData) init() {
-	nd.lastModifyTime = time.Now().Unix()
 }
 
 func (nd *nodeData) free() {
 	globalPageList.free(nd.ptr)
-}
-
-func (nd *nodeData) getLastModifyTime() int64 {
-	return nd.lastModifyTime
 }
 
 func (nd *nodeData) getStartTime() int64 {
@@ -77,7 +71,6 @@ func (nd *nodeData) getStartTime() int64 {
 }
 
 func (nd *nodeData) setStartTime(start int64) bool {
-	nd.lastModifyTime = time.Now().Unix()
 	nd.startTime = start
 	return true
 }
@@ -97,7 +90,6 @@ func (nd *nodeData) setEndTime(end int64) bool {
 	if end != 0 && time.Now().Unix() > end {
 		return false
 	}
-	nd.lastModifyTime = time.Now().Unix()
 	nd.endTime = end
 	return true
 }
@@ -124,7 +116,6 @@ func (nd *nodeData) value() (value []byte) {
 }
 
 func (nd *nodeData) setKeyValue(key, value string) bool {
-	nd.lastModifyTime = time.Now().Unix()
 	nd.keySize = len(key)
 	nd.valueSize = len(value)
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(nd))
@@ -140,7 +131,6 @@ func (nd *nodeData) setKey(key string) bool {
 	if size > int(nd.ptr.count)*pageSize {
 		return false
 	}
-	nd.lastModifyTime = time.Now().Unix()
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(nd))
 	copy(buf[nodeDataSize:nodeDataSize+nd.keySize], []byte(key))
 	copy(buf[nodeDataSize+nd.keySize:nodeDataSize+nd.keySize+nd.valueSize], []byte(value))
@@ -150,7 +140,6 @@ func (nd *nodeData) setKey(key string) bool {
 func (nd *nodeData) setValue(value string) bool {
 	size := pageHeaderSize + nodeDataSize + nd.keySize + len(value)
 	if size < int(nd.ptr.count)*pageSize {
-		nd.lastModifyTime = time.Now().Unix()
 		buf := (*[maxAlloacSize]byte)(unsafe.Pointer(nd))
 		nd.valueSize = len(value)
 		copy(buf[nodeDataSize+nd.keySize:nodeDataSize+nd.keySize+nd.valueSize], []byte(value))
