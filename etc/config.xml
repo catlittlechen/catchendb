@@ -12,7 +12,7 @@
 	</data>
 
 	<masterslave>
-		<ismaster>false</ismaster>
+		<ismaster>true</ismaster>
 
 		<hashsize>10</hashsize>
 		<reflushs>60</reflushs>

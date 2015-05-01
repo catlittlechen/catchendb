@@ -42,6 +42,10 @@ const (
 
 func LoadData() bool {
 
+	if !config.GlobalConf.MasterSlave.IsMaster {
+		return true
+	}
+
 	filename := config.GlobalConf.Data.DataPath + config.GlobalConf.Data.DataName
 	lgd.Trace("start loaddata[%s] at the time[%d]", filename, time.Now().Unix())
 

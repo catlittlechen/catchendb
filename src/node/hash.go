@@ -13,9 +13,8 @@ func hash(s string, count int) int {
 }
 
 type hashRoot struct {
-	size    int
-	rbNode  []nodeRoot
-	channel chan []byte
+	size   int
+	rbNode []nodeRoot
 }
 
 func (hr *hashRoot) insertNode(key, value string, start, end int64) bool {
@@ -44,13 +43,14 @@ func (hr *hashRoot) deleteNode(key string) bool {
 }
 
 func (hr *hashRoot) output(channel chan []byte, sign []byte) {
+	hrchan := make(chan []byte, 1000)
 	for _, rbtree := range hr.rbNode {
-		go rbtree.output(hr.channel, sign)
+		go rbtree.output(hrchan, sign)
 	}
 	index := 0
 	datastr := []byte("")
 	for {
-		datastr = <-hr.channel
+		datastr = <-hrchan
 		if bytes.Equal(datastr, sign) {
 			index += 1
 			if index == hr.size {
@@ -63,8 +63,29 @@ func (hr *hashRoot) output(channel chan []byte, sign []byte) {
 	return
 }
 
+func (hr *hashRoot) outputData(channel chan Data) {
+	hrchan := make(chan Data, 1000)
+	for _, rbtree := range hr.rbNode {
+		go rbtree.outputData(hrchan)
+	}
+	index := 0
+	d := Data{}
+	for {
+		d = <-hrchan
+		if len(d.Key) == 0 {
+			index += 1
+			if index == hr.size {
+				break
+			}
+		}
+		channel <- d
+	}
+	channel <- Data{}
+	return
+}
+
 func (hr *hashRoot) input(line []byte) bool {
-	d := data{}
+	d := Data{}
 	if !d.decode(line) {
 		return false
 	}
@@ -79,7 +100,6 @@ func (hr *hashRoot) init() bool {
 		return false
 	}
 	hr.rbNode = make([]nodeRoot, hr.size)
-	hr.channel = make(chan []byte)
 
 	for index := 0; index < hr.size; index += 1 {
 		hr.rbNode[index] = *new(nodeRoot)
