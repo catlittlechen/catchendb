@@ -38,6 +38,10 @@ func OutPut(channel chan []byte, sign []byte) {
 	iRoot.output(channel, sign)
 }
 
+func OutPutData(channel chan Data) {
+	iRoot.outputData(channel)
+}
+
 func InPut(line []byte) bool {
 	return iRoot.input(line)
 }

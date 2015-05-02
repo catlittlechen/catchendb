@@ -41,7 +41,7 @@ func handleReplicationServer(conn *net.TCPConn) {
 	if !ok {
 		return
 	}
-	logic.Replication(conn)
+	logic.Replication(name, conn)
 	logic.DisConnection(name)
 }
 

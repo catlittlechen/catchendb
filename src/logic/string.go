@@ -24,6 +24,7 @@ func handleSet(keyword url.Values) []byte {
 		lgd.Error("set fail! key[%s] value[%s]", key, value)
 		rsp.C = ERR_CMD_SET
 	}
+	go replicationData(keyword)
 	return util.JsonOut(rsp)
 }
 
@@ -49,6 +50,7 @@ func handleDel(keyword url.Values) []byte {
 		lgd.Error("del fail! key[%s]", key)
 		rsp.C = ERR_CMD_DEL
 	}
+	go replicationData(keyword)
 	return util.JsonOut(rsp)
 }
 
@@ -73,6 +75,7 @@ func handleSetEx(keyword url.Values) []byte {
 		lgd.Error("set fail! key[%s] value[%s]", key, value)
 		rsp.C = ERR_CMD_SET
 	}
+	go replicationData(keyword)
 	return util.JsonOut(rsp)
 }
 
@@ -90,6 +93,7 @@ func handleDelay(keyword url.Values) []byte {
 		lgd.Error("delay fail! key[%s] startTime[%d]", key, startTime)
 		rsp.C = ERR_CMD_DELAY
 	}
+	go replicationData(keyword)
 	return util.JsonOut(rsp)
 }
 
@@ -107,6 +111,7 @@ func handleExpire(keyword url.Values) []byte {
 		lgd.Error("delay fail! key[%s] endTime[%d]", key, endTime)
 		rsp.C = ERR_CMD_EXPIRE
 	}
+	go replicationData(keyword)
 	return util.JsonOut(rsp)
 }
 

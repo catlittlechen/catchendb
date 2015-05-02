@@ -6,10 +6,16 @@ import (
 	"hash/fnv"
 )
 
-func hash(s string, count int) int {
+//import lgd "code.google.com/p/log4go"
+
+func hash(s string, count int) (index int) {
 	h := fnv.New32a()
 	h.Write([]byte(s))
-	return int(h.Sum32()) % count
+	index = int(h.Sum32()) % count
+	if index < 0 {
+		index = -index
+	}
+	return
 }
 
 type hashRoot struct {
