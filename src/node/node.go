@@ -19,9 +19,8 @@ var (
 )
 
 type nodeRoot struct {
-	node    *nodePageElem
-	mutex   *sync.Mutex
-	channel chan []byte
+	node  *nodePageElem
+	mutex *sync.Mutex
 }
 
 func (nr *nodeRoot) init() bool {
@@ -30,7 +29,7 @@ func (nr *nodeRoot) init() bool {
 }
 
 func (nr *nodeRoot) input(line []byte) bool {
-	d := data{}
+	d := Data{}
 	if !d.decode(line) {
 		return false
 	}
@@ -38,24 +37,39 @@ func (nr *nodeRoot) input(line []byte) bool {
 	return true
 }
 
-func (nr *nodeRoot) output(channe chan []byte, sign []byte) {
-	nr.channel = channe
-	nr.preorder(nr.node)
-	nr.channel <- sign
+func (nr *nodeRoot) outputData(chanData chan Data) {
+	nr.preorder(chanData, nr.node)
+	d := new(Data)
+	chanData <- *d
 }
 
-func (nr *nodeRoot) preorder(node *nodePageElem) {
+func (nr *nodeRoot) output(channe chan []byte, sign []byte) {
+	chanData := make(chan Data, 1000)
+	var datastr []byte
+
+	go nr.preorder(chanData, nr.node)
+	for {
+		d := <-chanData
+		if len(d.Key) == 0 {
+			break
+		}
+		datastr, _ = d.encode()
+		channe <- datastr
+	}
+	channe <- sign
+}
+
+func (nr *nodeRoot) preorder(channe chan Data, node *nodePageElem) {
 
 	if node != nil {
-		d := new(data)
+		d := new(Data)
 		d.Key = string(node.key())
 		d.Value = string(node.value())
 		d.StartTime = node.getStartTime()
 		d.EndTime = node.getEndTime()
-		datastr, _ := d.encode()
-		nr.channel <- datastr
-		nr.preorder(node.lChild)
-		nr.preorder(node.rChild)
+		channe <- *d
+		nr.preorder(channe, node.lChild)
+		nr.preorder(channe, node.rChild)
 	}
 }
 

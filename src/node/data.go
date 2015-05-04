@@ -6,14 +6,14 @@ import (
 	"unsafe"
 )
 
-type data struct {
+type Data struct {
 	Key       string `json:"key"`
 	Value     string `json:"value"`
 	StartTime int64  `json:"start"`
 	EndTime   int64  `json:"end"`
 }
 
-func (d *data) decode(line []byte) bool {
+func (d *Data) decode(line []byte) bool {
 	err := json.Unmarshal(line, d)
 	if err != nil {
 		return false
@@ -21,7 +21,7 @@ func (d *data) decode(line []byte) bool {
 	return true
 }
 
-func (d *data) encode() (line []byte, ok bool) {
+func (d *Data) encode() (line []byte, ok bool) {
 	var err error
 	line, err = json.Marshal(d)
 	if err != nil {

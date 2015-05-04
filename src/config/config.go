@@ -9,7 +9,8 @@ import (
 )
 
 type xmlServer struct {
-	BindAddr string `xml:"bindaddr"`
+	BindAddr        string `xml:"bindaddr"`
+	ReplicationAddr string `xml:"replicationaddr"`
 }
 
 type xmlData struct {

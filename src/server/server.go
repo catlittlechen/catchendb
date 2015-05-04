@@ -21,6 +21,54 @@ import lgd "code.google.com/p/log4go"
 var configFile = flag.String("config", "../etc/config.xml", "configFile")
 var displayHelp = flag.Bool("help", false, "display HelpMessage")
 
+func handleReplicationServer(conn *net.TCPConn) {
+	defer func() {
+		if re := recover(); re != nil {
+			lgd.Error("recover %s", re)
+			lgd.Error("stack %s", debug.Stack())
+		}
+	}()
+
+	data := make([]byte, 1024)
+	count, err := conn.Read(data)
+	if err != nil {
+		lgd.Error("read error[%s]", err)
+		return
+	}
+	defer conn.Close()
+	ok, name, res := logic.AUT(data[:count])
+	conn.Write(res)
+	if !ok {
+		return
+	}
+	logic.Replication(name, conn)
+	logic.DisConnection(name)
+}
+
+func replicationloop() {
+
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", config.GlobalConf.Server.ReplicationAddr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ResolveTCPAddr[%s] error[%s]", config.GlobalConf.Server.ReplicationAddr, err)
+		return
+	}
+	listener, err := net.ListenTCP("tcp", tcpAddr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "listenTCP[%s] error[%s]", tcpAddr, err)
+		return
+	}
+
+	for {
+		conn, err := listener.AcceptTCP()
+		if err != nil {
+			lgd.Error("listener Accept error[%s]", err)
+			return
+		}
+
+		go handleReplicationServer(conn)
+	}
+}
+
 func handleServer(conn *net.TCPConn) {
 	defer func() {
 		if re := recover(); re != nil {
@@ -105,6 +153,7 @@ func main() {
 	if !logic.Init() {
 		return
 	}
+	go replicationloop()
 	mainloop()
 	return
 }
