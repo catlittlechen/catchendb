@@ -1,22 +1,28 @@
-package main
+package logic
 
-import ()
+import (
+	"catchendb/src/util"
+	"net/url"
+)
 
-func handleBegin(keyword url.Value) []byte {
+func handleBegin(keyword url.Values) []byte {
 	rsp := Rsp{}
 	code := keyword.Get(URL_CMD)
+	_ = code
 	return util.JsonOut(rsp)
 }
 
-func handleCommit(keyword url.Value) []byte {
+func handleCommit(keyword url.Values) []byte {
 	rsp := Rsp{}
 	code := keyword.Get(URL_CMD)
+	_ = code
 	return util.JsonOut(rsp)
 }
 
-func handleRollBack(keyword url.Value) []byte {
+func handleRollBack(keyword url.Values) []byte {
 	rsp := Rsp{}
 	code := keyword.Get(URL_CMD)
+	_ = code
 	return util.JsonOut(rsp)
 }
 

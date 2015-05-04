@@ -39,11 +39,6 @@ func replicationData(data url.Values) {
 	channelMutex.Unlock()
 }
 
-func Replication(name string, conn *net.TCPConn) {
-	replicationMaster(name, conn)
-	return
-}
-
 func replicationMaster(name string, conn *net.TCPConn) {
 	channelReplication := make(chan url.Values, 1000)
 	addReplicationChannel(name, &channelReplication)

@@ -8,7 +8,7 @@ import (
 import lgd "code.google.com/p/log4go"
 
 type acNodeData struct {
-	Mutex     sync.Mutex
+	Mutex     *sync.Mutex
 	size      int
 	startTime int64
 	endTime   int64
@@ -17,7 +17,7 @@ type acNodeData struct {
 	memory    []byte
 }
 
-func createAcData(key, value string, start, end int64) (data *acNodeData) {
+func createAcData(key, value string, start, end int64, mutex bool) (data *acNodeData) {
 	size := len(key) + len(value) + 1
 	data = globalDynamicList.acNodeData(size)
 	data.init()
@@ -27,10 +27,14 @@ func createAcData(key, value string, start, end int64) (data *acNodeData) {
 	}
 
 	data.setKeyValue(key, value)
+	if mutex {
+		data.lock()
+	}
 	return
 }
 
 func (nd *acNodeData) init() {
+	nd.Mutex = new(sync.Mutex)
 }
 
 func (nd *acNodeData) free() {
@@ -42,6 +46,8 @@ func (nd *acNodeData) getStartTime() int64 {
 }
 
 func (nd *acNodeData) setStartTime(start int64) bool {
+	nd.Mutex.Lock()
+	defer nd.Mutex.Unlock()
 	nd.startTime = start
 	return true
 }
@@ -58,6 +64,8 @@ func (nd *acNodeData) getEndTime() int64 {
 }
 
 func (nd *acNodeData) setEndTime(end int64) bool {
+	nd.Mutex.Lock()
+	defer nd.Mutex.Unlock()
 	if end != 0 && time.Now().Unix() > end {
 		return false
 	}
@@ -88,6 +96,8 @@ func (nd *acNodeData) value() (value []byte) {
 }
 
 func (nd *acNodeData) setKeyValue(key, value string) bool {
+	nd.Mutex.Lock()
+	defer nd.Mutex.Unlock()
 	nd.keySize = len(key)
 	nd.valueSize = len(value)
 	copy(nd.memory[:nd.keySize], []byte(key))
@@ -96,6 +106,8 @@ func (nd *acNodeData) setKeyValue(key, value string) bool {
 }
 
 func (nd *acNodeData) setKey(key string) bool {
+	nd.Mutex.Lock()
+	defer nd.Mutex.Unlock()
 	value := nd.value()
 	nd.keySize = len(key)
 	size := nd.keySize + nd.valueSize
@@ -108,6 +120,8 @@ func (nd *acNodeData) setKey(key string) bool {
 }
 
 func (nd *acNodeData) setValue(value string) bool {
+	nd.Mutex.Lock()
+	defer nd.Mutex.Unlock()
 	size := nd.keySize + len(value)
 	if size < nd.size {
 		nd.valueSize = len(value)
@@ -115,4 +129,12 @@ func (nd *acNodeData) setValue(value string) bool {
 		return true
 	}
 	return false
+}
+
+func (nd *acNodeData) lock() {
+	nd.Mutex.Lock()
+}
+
+func (nd *acNodeData) unLock() {
+	nd.Mutex.Unlock()
 }

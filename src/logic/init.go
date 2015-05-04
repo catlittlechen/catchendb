@@ -4,6 +4,7 @@ import (
 	"catchendb/src/config"
 	"catchendb/src/user"
 	"catchendb/src/util"
+	"net"
 	"net/url"
 	"sync"
 )
@@ -15,15 +16,49 @@ var (
 	userMutex      *sync.Mutex
 )
 
-func LYW(data []byte, name string, replication bool) []byte {
-	return lyw(data, name, replication)
+func ReplicationLogic(conn *net.TCPConn) {
+	data := make([]byte, 1024)
+	count, err := conn.Read(data)
+	if err != nil {
+		lgd.Error("read error[%s]", err)
+		return
+	}
+	ok, name, res := aut(data[:count])
+	conn.Write(res)
+	if !ok {
+		return
+
+	}
+	replicationMaster(name, conn)
+	disConnection(name)
 }
 
-func AUT(data []byte) (bool, string, []byte) {
-	return aut(data)
+func ClientLogic(conn *net.TCPConn) {
+	data := make([]byte, 1024)
+	count, err := conn.Read(data)
+	if err != nil {
+		lgd.Error("read error[%s]", err)
+		return
+
+	}
+	ok, name, res := aut(data[:count])
+	conn.Write(res)
+	if !ok {
+		return
+	}
+	for {
+		count, err = conn.Read(data)
+		if err != nil {
+			lgd.Warn("read error[%s]", err)
+			disConnection(name)
+			return
+		}
+		res := lyw(data[:count], name, false)
+		conn.Write(res)
+	}
 }
 
-func DisConnection(name string) {
+func disConnection(name string) {
 	userMutex.Lock()
 	defer userMutex.Unlock()
 	if userConnection[name] == 1 {

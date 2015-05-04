@@ -269,7 +269,7 @@ func (ac *acNodePageElem) setData(key, value string, start, end int64) bool {
 	ac.dataMutex.Lock()
 	defer ac.dataMutex.Unlock()
 
-	data := createAcData(key, value, start, end)
+	data := createAcData(key, value, start, end, false)
 	if data == nil {
 		return false
 	}

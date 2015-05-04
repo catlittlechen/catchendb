@@ -28,21 +28,8 @@ func handleReplicationServer(conn *net.TCPConn) {
 			lgd.Error("stack %s", debug.Stack())
 		}
 	}()
-
-	data := make([]byte, 1024)
-	count, err := conn.Read(data)
-	if err != nil {
-		lgd.Error("read error[%s]", err)
-		return
-	}
 	defer conn.Close()
-	ok, name, res := logic.AUT(data[:count])
-	conn.Write(res)
-	if !ok {
-		return
-	}
-	logic.Replication(name, conn)
-	logic.DisConnection(name)
+	logic.ReplicationLogic(conn)
 }
 
 func replicationloop() {
@@ -76,29 +63,8 @@ func handleServer(conn *net.TCPConn) {
 			lgd.Error("stack %s", debug.Stack())
 		}
 	}()
-
-	data := make([]byte, 1024)
-	count, err := conn.Read(data)
-	if err != nil {
-		lgd.Error("read error[%s]", err)
-		return
-	}
 	defer conn.Close()
-	ok, name, res := logic.AUT(data[:count])
-	conn.Write(res)
-	if !ok {
-		return
-	}
-	for {
-		count, err = conn.Read(data)
-		if err != nil {
-			lgd.Warn("read error[%s]", err)
-			logic.DisConnection(name)
-			return
-		}
-		res := logic.LYW(data[:count], name, false)
-		conn.Write(res)
-	}
+	logic.ClientLogic(conn)
 }
 
 func mainloop() {
