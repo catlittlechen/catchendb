@@ -138,6 +138,13 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 		}
 		if lenc == 0 {
 			parent.unlock(k)
+			if node.isEnd() {
+				go ac.deleteNode(key)
+				return nil
+			}
+			if len(node.value()) == 0 {
+				return nil
+			}
 			return child
 		}
 		parent.unlock(k)
@@ -151,9 +158,6 @@ func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
 	node := ac.search(key)
 	if node != nil {
 		value = string(node.value())
-		if value == "" {
-			return
-		}
 		return value, node.getStartTime(), node.getEndTime()
 	}
 	return
