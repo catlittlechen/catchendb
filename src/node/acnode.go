@@ -8,8 +8,7 @@ import (
 import lgd "code.google.com/p/log4go"
 
 var (
-	channelAC chan []byte
-	acRoot    *acNodeRoot
+	acRoot *acNodeRoot
 )
 
 type acNodeRoot struct {
@@ -199,29 +198,43 @@ func (ac *acNodeRoot) deleteNode(key string) bool {
 	return true
 }
 
-func (ac *acNodeRoot) output(chans chan []byte, sign []byte) {
-	channelAC = chans
-	ac.preorder("", ac.node)
-	channelAC <- sign
+func (ac *acNodeRoot) outputData(chanData chan Data) {
+	ac.preorder(chanData, "", ac.node)
+	d := new(Data)
+	chanData <- *d
 }
 
-func (ac *acNodeRoot) preorder(key string, node *acNodePageElem) {
+func (ac *acNodeRoot) output(chans chan []byte, sign []byte) {
+	chanData := make(chan Data, 1000)
+	var datastr []byte
+	go ac.outputData(chanData)
+	for {
+		d := <-chanData
+		if len(d.Key) == 0 {
+			break
+		}
+		datastr, _ = d.encode()
+		chans <- datastr
+	}
+	chans <- sign
+}
+
+func (ac *acNodeRoot) preorder(chans chan Data, key string, node *acNodePageElem) {
 	d := node.getData(key)
 	if d != nil {
-		datastr, _ := d.encode()
-		channelAC <- datastr
+		chans <- *d
 	}
 	child := node.getAllChild()
 	key += string(node.key())
 	for _, v := range child {
 		if v != nil {
-			ac.preorder(key, v)
+			ac.preorder(chans, key, v)
 		}
 	}
 }
 
 func (ac *acNodeRoot) input(line []byte) bool {
-	d := data{}
+	d := Data{}
 
 	if !d.decode(line) {
 		return false
@@ -264,12 +277,12 @@ func (ac *acNodePageElem) setData(key, value string, start, end int64) bool {
 	return true
 }
 
-func (ac *acNodePageElem) getData(key string) (d *data) {
+func (ac *acNodePageElem) getData(key string) (d *Data) {
 	if ac.isEnd() {
 		return nil
 	}
 
-	d = new(data)
+	d = new(Data)
 	d.Value = string(ac.value())
 	if len(d.Value) == 0 {
 		return nil

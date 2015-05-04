@@ -20,4 +20,6 @@ type iNodeRoot interface {
 	input([]byte) bool
 
 	init() bool
+
+	outputData(chan Data)
 }

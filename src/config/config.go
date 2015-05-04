@@ -9,9 +9,8 @@ import (
 )
 
 type xmlServer struct {
-	BindAddr string `xml:"bindaddr"`
-	Path     string `xml:"path"`
-	TempPath string `xml:"temppath"`
+	BindAddr        string `xml:"bindaddr"`
+	ReplicationAddr string `xml:"replicationaddr"`
 }
 
 type xmlData struct {
@@ -21,9 +20,14 @@ type xmlData struct {
 }
 
 type xmlMasterSlave struct {
-	IsMaster    bool `xml:"ismaster"`
-	HashSize    int  `xml:"hashsize"`
-	ReFlushTime int  `xml:"reflushs"`
+	IsMaster bool `xml:"ismaster"`
+
+	HashSize    int    `xml:"hashsize"`
+	ReFlushTime int    `xml:"reflushs"`
+	IP          string `xml:"masterip"`
+	Port        int    `xml:"masterport"`
+	UserName    string `xml:"masteruser"`
+	PassWord    string `xml:"masterpass"`
 }
 
 type xmlConfig struct {
