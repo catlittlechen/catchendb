@@ -47,7 +47,7 @@ func (nr *nodeRoot) output(channe chan []byte, sign []byte) {
 	chanData := make(chan Data, 1000)
 	var datastr []byte
 
-	go nr.preorder(chanData, nr.node)
+	go nr.outputData(chanData)
 	for {
 		d := <-chanData
 		if len(d.Key) == 0 {

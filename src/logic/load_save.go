@@ -295,8 +295,10 @@ func saveData() bool {
 }
 
 func autoSaveData() (ret bool) {
-	time.Sleep(config.GlobalConf.Data.DataTime * time.Second)
-	saveData()
+	for {
+		time.Sleep(config.GlobalConf.Data.DataTime * time.Second)
+		saveData()
+	}
 	return
 }
 
