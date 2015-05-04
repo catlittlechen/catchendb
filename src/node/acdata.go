@@ -1,12 +1,14 @@
 package node
 
 import (
+	"sync"
 	"time"
 )
 
 import lgd "code.google.com/p/log4go"
 
 type acNodeData struct {
+	Mutex     sync.Mutex
 	size      int
 	startTime int64
 	endTime   int64
