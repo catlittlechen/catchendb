@@ -174,7 +174,7 @@ func syncData(conn *net.TCPConn) {
 			lgd.Error("Fatal Error %s", err)
 			return
 		}
-		_, err = conn.Write(mapAction(keyword, 2, true))
+		_, err = conn.Write(mapAction(keyword, 2, true, nil))
 		if err != nil {
 			lgd.Error("Sync Fatal Error %s", err)
 			return

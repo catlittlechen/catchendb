@@ -46,6 +46,10 @@ const (
 	ERR_END_TIME   = 304
 	ERR_CMD_DELAY  = 305
 	ERR_CMD_EXPIRE = 306
+
+	ERR_TRA_BEGIN    = 401
+	ERR_TRA_NO_BEGIN = 402
+	ERR_TRA_USER     = 403
 )
 
 const (

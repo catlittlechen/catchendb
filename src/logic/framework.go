@@ -14,11 +14,11 @@ const (
 	TYPE_X = 1
 )
 
-var functionAction map[string]func(url.Values) []byte
+var functionAction map[string]func(url.Values, *transaction) []byte
 var functionArgv map[string]int
 var functionType map[string]int
 
-func mapAction(keyword url.Values, privilege int, replication bool) []byte {
+func mapAction(keyword url.Values, privilege int, replication bool, tranObj *transaction) []byte {
 	rsp := Rsp{
 		C: ERR_CMD_MISS,
 	}
@@ -41,19 +41,23 @@ func mapAction(keyword url.Values, privilege int, replication bool) []byte {
 				rsp.C = ERR_ACCESS_DENIED
 				return util.JsonOut(rsp)
 			}
+			if tranObj.isBegin() {
+				rsp.C = ERR_TRA_USER
+				return util.JsonOut(rsp)
+			}
 		}
 		if len(keyword) != functionArgv[key] {
 			lgd.Error("argv[%+v] is illegal", keyword)
 			rsp.C = ERR_PARSE_MISS
 			return util.JsonOut(rsp)
 		}
-		return function(keyword)
+		return function(keyword, tranObj)
 	}
 
 	return util.JsonOut(rsp)
 }
 
-func registerCMD(key string, argvcount int, function func(url.Values) []byte, typ int) {
+func registerCMD(key string, argvcount int, function func(url.Values, *transaction) []byte, typ int) {
 	if _, ok := functionAction[key]; ok {
 		lgd.Error("duplicate key %s", key)
 		return
@@ -66,7 +70,7 @@ func registerCMD(key string, argvcount int, function func(url.Values) []byte, ty
 }
 
 func init() {
-	functionAction = make(map[string]func(url.Values) []byte)
+	functionAction = make(map[string]func(url.Values, *transaction) []byte)
 	functionArgv = make(map[string]int)
 	functionType = make(map[string]int)
 }

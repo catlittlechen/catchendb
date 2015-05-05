@@ -37,7 +37,7 @@ func (ac *acNodeRoot) createData(key, value string, start, end int64, node *acNo
 	return node.setData(key, value, start, end)
 }
 
-func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
+func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int) bool {
 	defer func() {
 		if re := recover(); re != nil {
 			lgd.Error("recover %s", re)
@@ -139,7 +139,7 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 		if lenc == 0 {
 			parent.unlock(k)
 			if node.isEnd() {
-				go ac.deleteNode(key)
+				go ac.deleteNode(key, 0)
 				return nil
 			}
 			if len(node.value()) == 0 {
@@ -163,21 +163,21 @@ func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
 	return
 }
 
-func (ac *acNodeRoot) setStartTime(key string, start int64) bool {
+func (ac *acNodeRoot) setStartTime(key string, start int64, tranID int) bool {
 	if node := ac.search(key); node != nil {
 		return node.setStartTime(start)
 	}
 	return false
 }
 
-func (ac *acNodeRoot) setEndTime(key string, end int64) bool {
+func (ac *acNodeRoot) setEndTime(key string, end int64, tranID int) bool {
 	if node := ac.search(key); node != nil {
 		return node.setEndTime(end)
 	}
 	return false
 }
 
-func (ac *acNodeRoot) deleteNode(key string) bool {
+func (ac *acNodeRoot) deleteNode(key string, tranID int) bool {
 	node := ac.search(key)
 	node.setValue("")
 	node.setStartTime(0)
@@ -244,7 +244,7 @@ func (ac *acNodeRoot) input(line []byte) bool {
 		return false
 	}
 	go func() {
-		if !ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime) {
+		if !ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime, 0) {
 			lgd.Error("insert node fail! --> data %+v", d)
 		}
 	}()
@@ -263,13 +263,16 @@ type acNodePageElem struct {
 
 	dataMutex *sync.Mutex
 	data      *acNodeData
+
+	transactionID    int
+	transactionMutex *sync.Mutex
 }
 
 func (ac *acNodePageElem) setData(key, value string, start, end int64) bool {
 	ac.dataMutex.Lock()
 	defer ac.dataMutex.Unlock()
 
-	data := createAcData(key, value, start, end, false)
+	data := createAcData(key, value, start, end)
 	if data == nil {
 		return false
 	}

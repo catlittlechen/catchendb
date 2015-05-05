@@ -24,13 +24,16 @@ func ReplicationLogic(conn *net.TCPConn) {
 		return
 	}
 	ok, name, res := aut(data[:count])
-	conn.Write(res)
+	_, err = conn.Write(res)
 	if !ok {
 		return
-
+	}
+	defer disConnection(name)
+	if err != nil {
+		lgd.Warn("write error[%s]", err)
+		return
 	}
 	replicationMaster(name, conn)
-	disConnection(name)
 }
 
 func ClientLogic(conn *net.TCPConn) {
@@ -42,20 +45,98 @@ func ClientLogic(conn *net.TCPConn) {
 
 	}
 	ok, name, res := aut(data[:count])
-	conn.Write(res)
+	_, err = conn.Write(res)
 	if !ok {
 		return
 	}
+
+	defer disConnection(name)
+	if err != nil {
+		lgd.Warn("write error[%s]", err)
+		return
+	}
+
+	privilege := 0
+	errRes := util.JsonOut(Rsp{
+		C: ERR_URL_PARSE,
+	})
+	tranObj := new(transaction)
+	var urlStr string
+	var keyword url.Values
 	for {
+		defer func() {
+			if tranObj.isBegin() {
+				tranObj.rollback()
+			}
+		}()
 		count, err = conn.Read(data)
 		if err != nil {
 			lgd.Warn("read error[%s]", err)
-			disConnection(name)
 			return
 		}
-		res := lyw(data[:count], name, false)
-		conn.Write(res)
+
+		urlStr = string(data[:count])
+		keyword, err = url.ParseQuery(urlStr)
+		if err != nil {
+			lgd.Warn("ParseQuery fail with the url %s", urlStr)
+			_, err = conn.Write(errRes)
+			if err != nil {
+				lgd.Warn("write error[%s]", err)
+				return
+			}
+			continue
+		}
+
+		ok, res = clientTransactionLogic(keyword, tranObj)
+		if !ok {
+			_, err = conn.Write(res)
+			if err != nil {
+				lgd.Warn("write error[%s]", err)
+				return
+			}
+			continue
+		}
+		privilege = user.GetPrivilege(name)
+		_, err = conn.Write(mapAction(keyword, privilege, false, tranObj))
+		if err != nil {
+			lgd.Warn("write error[%s]", err)
+			return
+		}
 	}
+}
+
+func clientTransactionLogic(keyword url.Values, tranObj *transaction) (normal bool, res []byte) {
+	rsp := Rsp{}
+	switch keyword.Get(URL_CMD) {
+	case CMD_BEGIN:
+		if tranObj.isBegin() {
+			rsp.C = ERR_TRA_BEGIN
+		} else {
+			tranObj.init()
+		}
+		res = util.JsonOut(rsp)
+		return
+	case CMD_ROLLBACK:
+		if tranObj.isBegin() {
+			rsp.C = tranObj.rollback()
+		} else {
+			rsp.C = ERR_TRA_NO_BEGIN
+		}
+		res = util.JsonOut(rsp)
+		return
+	case CMD_COMMIT:
+		if tranObj.isBegin() {
+			rsp.C = tranObj.commit()
+		} else {
+			rsp.C = ERR_TRA_NO_BEGIN
+		}
+		res = util.JsonOut(rsp)
+		return
+
+	default:
+		normal = true
+	}
+	return
 }
 
 func disConnection(name string) {
@@ -67,22 +148,6 @@ func disConnection(name string) {
 		userConnection[name] -= 1
 	}
 	return
-}
-
-func lyw(data []byte, name string, replication bool) []byte {
-	lgd.Info("Request %s", string(data))
-
-	rsp := Rsp{}
-	urlStr := string(data)
-
-	keyword, err := url.ParseQuery(urlStr)
-	if err != nil {
-		lgd.Error("ParseQuery fail with the url %s", urlStr)
-		rsp.C = ERR_URL_PARSE
-		return util.JsonOut(rsp)
-	}
-	privilege := user.GetPrivilege(name)
-	return mapAction(keyword, privilege, replication)
 }
 
 func aut(data []byte) (ok bool, name string, r []byte) {
@@ -98,7 +163,7 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 		r = util.JsonOut(rsp)
 		return
 	}
-	ok, name = handleUserAut(keyword)
+	ok, name = handleUserAut(keyword, nil)
 	if !ok {
 		rsp.C = ERR_ACCESS_DENIED
 		r = util.JsonOut(rsp)

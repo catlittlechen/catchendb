@@ -5,15 +5,15 @@ var (
 )
 
 type iNodeRoot interface {
-	insertNode(string, string, int64, int64) bool
+	insertNode(string, string, int64, int64, int) bool
 
 	searchNode(string) (string, int64, int64)
 
-	setStartTime(string, int64) bool
+	setStartTime(string, int64, int) bool
 
-	setEndTime(string, int64) bool
+	setEndTime(string, int64, int) bool
 
-	deleteNode(string) bool
+	deleteNode(string, int) bool
 
 	output(chan []byte, []byte)
 
