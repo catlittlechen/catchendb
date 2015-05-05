@@ -165,6 +165,25 @@ func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
 
 func (ac *acNodeRoot) setStartTime(key string, start int64, tranID int) bool {
 	if node := ac.search(key); node != nil {
+		node.tLock()
+		defer node.tUnlock()
+		if tranID < 0 {
+			node.transactionID = 0
+			if tranID == -2 {
+				return true
+			}
+			return node.setStartTime(start)
+		}
+		if node.transactionID == 0 {
+			if tranID != 0 {
+				node.transactionID = tranID
+				return true
+			}
+		} else {
+			if node.transactionID == tranID {
+				return true
+			}
+		}
 		return node.setStartTime(start)
 	}
 	return false
@@ -264,8 +283,17 @@ type acNodePageElem struct {
 	dataMutex *sync.Mutex
 	data      *acNodeData
 
-	transactionID    int
-	transactionMutex *sync.Mutex
+	transactionID      int
+	transactionMutex   *sync.Mutex
+	transactionChannel chan bool
+}
+
+func (ac *acNodePageElem) tLock() {
+	ac.transactionMutex.Lock()
+}
+
+func (ac *acNodePageElem) tUnlock() {
+	ac.transactionMutex.Unlock()
 }
 
 func (ac *acNodePageElem) setData(key, value string, start, end int64) bool {
@@ -306,6 +334,8 @@ func (ac *acNodePageElem) init() {
 	ac.child = make(map[byte]*acNodePageElem)
 	ac.childMutex = new(sync.Mutex)
 	ac.nodeChildMutex = make(map[byte]*sync.Mutex)
+	ac.transactionMutex = new(sync.Mutex)
+	ac.transactionChannel = make(chan bool, 10)
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {

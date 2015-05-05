@@ -19,4 +19,6 @@
 	<pagesize>256</pagesize>
 	<maxonlyuserconnection>10</maxonlyuserconnection>
 	<maxuserconnection>10</maxuserconnection>
+
+	<maxtransactiontime>5</maxtransactiontime>
 </config>
