@@ -1,19 +1,25 @@
 <config>
 	<server>
-		<bindaddr>0.0.0.0:13570</bindaddr>
-		<replicationaddr>0.0.0.0:13571</replicationaddr>
+		<bindaddr>0.0.0.0:23460</bindaddr>
 	</server>
 
 	<log>../etc/log.xml</log>
 
 	<data>
 		<datapath>../data/</datapath>
-		<dataname>ccdb.zjm</dataname>
+		<dataname>ccdb.slave.zjm</dataname>
 		<datatimes>60</datatimes>
 	</data>
 
 	<masterslave>
-		<ismaster>true</ismaster>
+		<ismaster>false</ismaster>
+
+		<hashsize>10</hashsize>
+		<reflushs>60</reflushs>
+		<masterip>127.0.0.1</masterip>
+		<masterport>13571</masterport>
+		<masteruser>chen</masteruser>
+		<masterpass>chen</masterpass>
 	</masterslave>
 
 	<pagesize>256</pagesize>

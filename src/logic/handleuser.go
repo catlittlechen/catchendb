@@ -69,7 +69,7 @@ func handleUserPriv(keyword url.Values) []byte {
 }
 
 func initUser() {
-	registerCMD(CMD_UADD, 3, handleUserAdd, TYPE_X)
+	registerCMD(CMD_UADD, 4, handleUserAdd, TYPE_X)
 	registerCMD(CMD_UDEL, 2, handleUserDelete, TYPE_X)
 	registerCMD(CMD_UPAS, 3, handleUserPass, TYPE_X)
 	registerCMD(CMD_UPRI, 3, handleUserPriv, TYPE_X)

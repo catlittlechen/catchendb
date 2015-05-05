@@ -24,12 +24,14 @@ var (
 )
 
 var (
-	lengthData int
-	lengthUser int
+	lengthData     int
+	lengthUser     int
+	lastModifyTime int64
 )
 
 const (
 	magicKey   = "1A089524CB555F689E5E8F72CFFC54C7"
+	timeKeyLen = 20
 	dataKeyLen = 10
 	userKeyLen = 10
 
@@ -40,6 +42,10 @@ const (
 
 func LoadData() bool {
 
+	if !config.GlobalConf.MasterSlave.IsMaster {
+		return true
+	}
+
 	filename := config.GlobalConf.Data.DataPath + config.GlobalConf.Data.DataName
 	lgd.Trace("start loaddata[%s] at the time[%d]", filename, time.Now().Unix())
 
@@ -49,6 +55,7 @@ func LoadData() bool {
 		return false
 	}
 	defer fp.Close()
+
 	var line []byte
 
 	//magicKey
@@ -64,6 +71,23 @@ func LoadData() bool {
 	} else if string(l) != magicKey {
 		lgd.Error("file[%s] magicKey[%s]", filename, l)
 		return false
+	}
+
+	//lastModifyTime
+	l = make([]byte, timeKeyLen)
+	lens, err = fp.Read(l)
+	if err != nil {
+		lgd.Error("faile[%s] read error[%s]", filename, err)
+		return false
+	} else if lens != timeKeyLen {
+		lgd.Error("file[%s] read error[len is illegal]", filename)
+		return false
+	} else {
+		lastModifyTime, err = strconv.ParseInt(string(l), 10, 64)
+		if err != nil {
+			lgd.Error("file[%s] length fail! data[%s]", filename, l)
+			return false
+		}
 	}
 
 	//userData
@@ -186,6 +210,7 @@ func saveData() bool {
 		outPutBoolen = false
 	}()
 
+	lastModifyTime = time.Now().Unix()
 	filename := config.GlobalConf.Data.DataPath + config.GlobalConf.Data.DataName + ".tmp"
 	lgd.Trace("start saveData[%s] at the time[%d]", filename, time.Now().Unix())
 
@@ -201,12 +226,21 @@ func saveData() bool {
 		lgd.Error("file[%s] write fail! err[%s]", filename, err)
 		return false
 	}
+
+	printsign := "%0" + fmt.Sprintf("%d", timeKeyLen) + "d"
+	l := fmt.Sprintf(printsign, lastModifyTime)
+	_, err = fp.Write([]byte(l))
+	if err != nil {
+		lgd.Error("file[%s] write fail! err[%s]", filename, err)
+		return false
+	}
+
 	//user
 	count := 0
 	var datastrSum, datastr, datastr2 []byte
 	channel := make(chan []byte, 1000)
 	go user.OutPut(channel, outPutSign)
-	printsign := "%0" + fmt.Sprintf("%d", lengthUser) + "d"
+	printsign = "%0" + fmt.Sprintf("%d", lengthUser) + "d"
 	for {
 		datastr = <-channel
 		if bytes.Equal(datastr, outPutSign) {
@@ -261,8 +295,10 @@ func saveData() bool {
 }
 
 func autoSaveData() (ret bool) {
-	time.Sleep(config.GlobalConf.Data.DataTime * time.Second)
-	saveData()
+	for {
+		time.Sleep(config.GlobalConf.Data.DataTime * time.Second)
+		saveData()
+	}
 	return
 }
 

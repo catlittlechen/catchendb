@@ -15,8 +15,8 @@ var (
 	userMutex      *sync.Mutex
 )
 
-func LYW(data []byte, name string) []byte {
-	return lyw(data, name)
+func LYW(data []byte, name string, replication bool) []byte {
+	return lyw(data, name, replication)
 }
 
 func AUT(data []byte) (bool, string, []byte) {
@@ -34,7 +34,7 @@ func DisConnection(name string) {
 	return
 }
 
-func lyw(data []byte, name string) []byte {
+func lyw(data []byte, name string, replication bool) []byte {
 	lgd.Info("Request %s", string(data))
 
 	rsp := Rsp{}
@@ -47,7 +47,7 @@ func lyw(data []byte, name string) []byte {
 		return util.JsonOut(rsp)
 	}
 	privilege := user.GetPrivilege(name)
-	return mapAction(keyword, privilege)
+	return mapAction(keyword, privilege, replication)
 }
 
 func aut(data []byte) (ok bool, name string, r []byte) {
@@ -92,10 +92,14 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 	return
 }
 
-func Init() {
+func Init() bool {
 	initString()
 	initUser()
+	if !config.GlobalConf.MasterSlave.IsMaster && !replicationSlave() {
+		return false
+	}
 	go autoSaveData()
+	return true
 }
 
 func init() {

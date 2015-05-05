@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"catchendb/src/config"
 	"catchendb/src/util"
 	"net/url"
 )
@@ -17,7 +18,7 @@ var functionAction map[string]func(url.Values) []byte
 var functionArgv map[string]int
 var functionType map[string]int
 
-func mapAction(keyword url.Values, privilege int) []byte {
+func mapAction(keyword url.Values, privilege int, replication bool) []byte {
 	rsp := Rsp{
 		C: ERR_CMD_MISS,
 	}
@@ -31,12 +32,12 @@ func mapAction(keyword url.Values, privilege int) []byte {
 				return util.JsonOut(rsp)
 			}
 		case TYPE_W:
-			if privilege/2 != 1 && privilege/2 != 3 {
+			if (privilege/2 != 1 && privilege/2 != 3) || (!config.GlobalConf.MasterSlave.IsMaster && !replication) {
 				rsp.C = ERR_ACCESS_DENIED
 				return util.JsonOut(rsp)
 			}
 		case TYPE_X:
-			if privilege < 0 || privilege > 7 && privilege%2 != 1 {
+			if privilege != 1 && privilege != 3 && privilege != 7 {
 				rsp.C = ERR_ACCESS_DENIED
 				return util.JsonOut(rsp)
 			}

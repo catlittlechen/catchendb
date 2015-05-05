@@ -8,8 +8,7 @@ import (
 import lgd "code.google.com/p/log4go"
 
 var (
-	channelAC chan []byte
-	acRoot    *acNodeRoot
+	acRoot *acNodeRoot
 )
 
 type acNodeRoot struct {
@@ -139,6 +138,13 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 		}
 		if lenc == 0 {
 			parent.unlock(k)
+			if node.isEnd() {
+				go ac.deleteNode(key)
+				return nil
+			}
+			if len(node.value()) == 0 {
+				return nil
+			}
 			return child
 		}
 		parent.unlock(k)
@@ -152,9 +158,6 @@ func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
 	node := ac.search(key)
 	if node != nil {
 		value = string(node.value())
-		if value == "" {
-			return
-		}
 		return value, node.getStartTime(), node.getEndTime()
 	}
 	return
@@ -199,29 +202,43 @@ func (ac *acNodeRoot) deleteNode(key string) bool {
 	return true
 }
 
-func (ac *acNodeRoot) output(chans chan []byte, sign []byte) {
-	channelAC = chans
-	ac.preorder("", ac.node)
-	channelAC <- sign
+func (ac *acNodeRoot) outputData(chanData chan Data) {
+	ac.preorder(chanData, "", ac.node)
+	d := new(Data)
+	chanData <- *d
 }
 
-func (ac *acNodeRoot) preorder(key string, node *acNodePageElem) {
+func (ac *acNodeRoot) output(chans chan []byte, sign []byte) {
+	chanData := make(chan Data, 1000)
+	var datastr []byte
+	go ac.outputData(chanData)
+	for {
+		d := <-chanData
+		if len(d.Key) == 0 {
+			break
+		}
+		datastr, _ = d.encode()
+		chans <- datastr
+	}
+	chans <- sign
+}
+
+func (ac *acNodeRoot) preorder(chans chan Data, key string, node *acNodePageElem) {
 	d := node.getData(key)
 	if d != nil {
-		datastr, _ := d.encode()
-		channelAC <- datastr
+		chans <- *d
 	}
 	child := node.getAllChild()
 	key += string(node.key())
 	for _, v := range child {
 		if v != nil {
-			ac.preorder(key, v)
+			ac.preorder(chans, key, v)
 		}
 	}
 }
 
 func (ac *acNodeRoot) input(line []byte) bool {
-	d := data{}
+	d := Data{}
 
 	if !d.decode(line) {
 		return false
@@ -264,12 +281,12 @@ func (ac *acNodePageElem) setData(key, value string, start, end int64) bool {
 	return true
 }
 
-func (ac *acNodePageElem) getData(key string) (d *data) {
+func (ac *acNodePageElem) getData(key string) (d *Data) {
 	if ac.isEnd() {
 		return nil
 	}
 
-	d = new(data)
+	d = new(Data)
 	d.Value = string(ac.value())
 	if len(d.Value) == 0 {
 		return nil

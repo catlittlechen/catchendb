@@ -15,8 +15,8 @@ type userInfo struct {
 
 func (u *userInfo) init(user, pass string, pri int) {
 	u.Username = user
-	u.Password = pass
-	u.Privilege = pri
+	u.setPassword(pass)
+	u.setPrivilege(pri)
 }
 
 func (u *userInfo) verifyPassword(password string) bool {
@@ -136,9 +136,6 @@ func output(channel chan []byte, outPutSign []byte) {
 func init() {
 	mapUser = make(map[string]userInfo)
 	u := new(userInfo)
-	password := preUserSig + util.Md5("root")
-	password = util.Md5(password)
-
-	u.init("root", password, 7)
+	u.init("root", "root", 7)
 	mapUser["root"] = *u
 }

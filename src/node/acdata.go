@@ -29,7 +29,6 @@ func createAcData(key, value string, start, end int64) (data *acNodeData) {
 }
 
 func (nd *acNodeData) init() {
-
 }
 
 func (nd *acNodeData) free() {
