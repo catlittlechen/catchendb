@@ -1,8 +1,10 @@
 package node
 
 import (
+	"catchendb/src/config"
 	"runtime/debug"
 	"sync"
+	"time"
 )
 
 import lgd "code.google.com/p/log4go"
@@ -62,6 +64,14 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int
 				node.unlock(k)
 				return false
 			}
+			if ret := child.transaction(tranID); ret == 1 {
+				child.setValue("")
+				child.setStartTime(0)
+				child.setEndTime(0)
+			} else if ret == 3 {
+				node.unlock(k)
+				return false
+			}
 			node.setChild(k, child)
 			node.unlock(k)
 			return true
@@ -75,6 +85,15 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int
 				node.unlock(k)
 				return false
 			}
+			if ret := child3.transaction(tranID); ret == 1 {
+				child3.setValue("")
+				child3.setStartTime(0)
+				child3.setEndTime(0)
+			} else if ret == 3 {
+				node.unlock(k)
+				return false
+			}
+
 			child.setKey(string(acKey[index:]))
 			node.setChild(k, child2)
 			child2.setChild(key[index], child3)
@@ -89,6 +108,13 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int
 			key = key[index:]
 			node = child
 		case 0:
+			if ret := child.transaction(tranID); ret == 1 {
+				node.unlock(k)
+				return true
+			} else if ret == 3 {
+				node.unlock(k)
+				return false
+			}
 			if child.setValue(value) {
 				child.setStartTime(start)
 				child.setEndTime(end)
@@ -101,6 +127,14 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int
 		case 1:
 			child2 := ac.createNode(key, value, start, end, node)
 			if child2 == nil {
+				node.unlock(k)
+				return false
+			}
+			if ret := child2.transaction(tranID); ret == 1 {
+				child2.setValue("")
+				child2.setStartTime(0)
+				child2.setEndTime(0)
+			} else if ret == 3 {
 				node.unlock(k)
 				return false
 			}
@@ -138,11 +172,11 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 		}
 		if lenc == 0 {
 			parent.unlock(k)
-			if node.isEnd() {
+			if child.isEnd() {
 				go ac.deleteNode(key, 0)
 				return nil
 			}
-			if len(node.value()) == 0 {
+			if len(child.value()) == 0 {
 				return nil
 			}
 			return child
@@ -165,24 +199,10 @@ func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
 
 func (ac *acNodeRoot) setStartTime(key string, start int64, tranID int) bool {
 	if node := ac.search(key); node != nil {
-		node.tLock()
-		defer node.tUnlock()
-		if tranID < 0 {
-			node.transactionID = 0
-			if tranID == -2 {
-				return true
-			}
-			return node.setStartTime(start)
-		}
-		if node.transactionID == 0 {
-			if tranID != 0 {
-				node.transactionID = tranID
-				return true
-			}
-		} else {
-			if node.transactionID == tranID {
-				return true
-			}
+		if ret := node.transaction(tranID); ret == 1 {
+			return true
+		} else if ret == 3 {
+			return false
 		}
 		return node.setStartTime(start)
 	}
@@ -191,6 +211,11 @@ func (ac *acNodeRoot) setStartTime(key string, start int64, tranID int) bool {
 
 func (ac *acNodeRoot) setEndTime(key string, end int64, tranID int) bool {
 	if node := ac.search(key); node != nil {
+		if ret := node.transaction(tranID); ret == 1 {
+			return true
+		} else if ret == 3 {
+			return false
+		}
 		return node.setEndTime(end)
 	}
 	return false
@@ -198,6 +223,11 @@ func (ac *acNodeRoot) setEndTime(key string, end int64, tranID int) bool {
 
 func (ac *acNodeRoot) deleteNode(key string, tranID int) bool {
 	node := ac.search(key)
+	if ret := node.transaction(tranID); ret == 1 {
+		return true
+	} else if ret == 3 {
+		return false
+	}
 	node.setValue("")
 	node.setStartTime(0)
 	node.setEndTime(0)
@@ -284,16 +314,82 @@ type acNodePageElem struct {
 	data      *acNodeData
 
 	transactionID      int
+	transactionOldID   int
 	transactionMutex   *sync.Mutex
-	transactionChannel chan bool
+	transactionChannel chan int
 }
 
-func (ac *acNodePageElem) tLock() {
+//@ret 1 success 2 go to the next action 3 timeout
+func (ac *acNodePageElem) transaction(tranID int) (ret int) {
+	ret = 1
 	ac.transactionMutex.Lock()
-}
+	if tranID < 0 {
+		ac.transactionOldID = ac.transactionID
+		ac.transactionID = 0
+		if len(ac.transactionChannel) > 0 {
+			timeout := make(chan bool, 1)
+			go func() {
+				time.Sleep(config.GlobalConf.MaxTransactionTime)
+				timeout <- true
+			}()
+			select {
+			case <-timeout:
+				lgd.Debug("wait for channel timeout")
+			case <-ac.transactionChannel:
+			}
+		}
+		ac.transactionChannel <- ac.transactionOldID
+		if tranID == -2 {
+			ac.transactionMutex.Unlock()
+			//回滚
+			return
+		}
+		ac.transactionMutex.Unlock()
+	} else if ac.transactionID == 0 {
+		if tranID != 0 {
+			ac.transactionID = tranID
+			ac.transactionMutex.Unlock()
+			//抢占锁
+			return
+		}
+	} else {
+		if ac.transactionID == tranID {
+			ac.transactionMutex.Unlock()
+			//同个事务
+			return
+		} else {
+			ac.transactionMutex.Unlock()
+			timeout := make(chan bool, 1)
+			go func() {
+				time.Sleep(config.GlobalConf.MaxTransactionTime)
+				timeout <- true
+			}()
+			for {
+				//等待老事务结束, or 超时
+				select {
+				case <-timeout:
+					ret = 3
+					return
+				case id := <-ac.transactionChannel:
+					if id != ac.transactionOldID {
+						continue
+					}
+					ac.transactionMutex.Lock()
+					if tranID != 0 {
+						ac.transactionID = tranID
+						ac.transactionMutex.Unlock()
+						//新的事务抢占锁
+						return
+					}
+					ac.transactionMutex.Unlock()
+					break
 
-func (ac *acNodePageElem) tUnlock() {
-	ac.transactionMutex.Unlock()
+				}
+			}
+		}
+	}
+	ret = 2
+	return
 }
 
 func (ac *acNodePageElem) setData(key, value string, start, end int64) bool {
@@ -335,7 +431,7 @@ func (ac *acNodePageElem) init() {
 	ac.childMutex = new(sync.Mutex)
 	ac.nodeChildMutex = make(map[byte]*sync.Mutex)
 	ac.transactionMutex = new(sync.Mutex)
-	ac.transactionChannel = make(chan bool, 10)
+	ac.transactionChannel = make(chan int, 1000)
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {

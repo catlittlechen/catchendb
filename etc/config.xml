@@ -20,5 +20,5 @@
 	<maxonlyuserconnection>10</maxonlyuserconnection>
 	<maxuserconnection>10</maxuserconnection>
 
-	<maxtransactiontime>5</maxtransactiontime>
+	<maxtransactiontime>60</maxtransactiontime>
 </config>

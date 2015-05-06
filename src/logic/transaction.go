@@ -49,7 +49,7 @@ func (t *transaction) push(typ int, newData *node.Data) {
 	t.ChangeData[newData.Key] = newData
 }
 
-func (t *transaction) changeData(key string) *node.Data {
+func (t *transaction) getData(key string) *node.Data {
 	return t.ChangeData[key]
 }
 
