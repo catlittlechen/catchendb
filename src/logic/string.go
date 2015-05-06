@@ -48,7 +48,7 @@ func handleGet(keyword url.Values, tranObj *transaction) []byte {
 		C: 0,
 	}
 	nowTime = time.Now().Unix()
-	if tranObj.isBegin() {
+	if tranObj != nil && tranObj.isBegin() {
 		if data := tranObj.getData(key); data != nil {
 			if nowTime > data.StartTime {
 				rsp.D = data.Value
@@ -195,7 +195,7 @@ func handleTTL(keyword url.Values, tranObj *transaction) []byte {
 		C: 0,
 	}
 	nowTime = time.Now().Unix()
-	if tranObj.isBegin() {
+	if tranObj != nil && tranObj.isBegin() {
 		if data := tranObj.getData(key); data != nil {
 			if nowTime < data.EndTime {
 				rsp.D = strconv.Itoa(int(data.EndTime - nowTime))
@@ -220,7 +220,7 @@ func handleTTS(keyword url.Values, tranObj *transaction) []byte {
 		C: 0,
 	}
 	nowTime = time.Now().Unix()
-	if tranObj.isBegin() {
+	if tranObj != nil && tranObj.isBegin() {
 		if data := tranObj.getData(key); data != nil {
 			if nowTime > data.StartTime {
 				rsp.D = strconv.Itoa(int(nowTime - data.StartTime))

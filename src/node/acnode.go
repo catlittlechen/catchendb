@@ -329,7 +329,7 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 		if len(ac.transactionChannel) > 0 {
 			timeout := make(chan bool, 1)
 			go func() {
-				time.Sleep(config.GlobalConf.MaxTransactionTime)
+				time.Sleep(100 * time.Millisecond)
 				timeout <- true
 			}()
 			select {
@@ -361,7 +361,7 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 			ac.transactionMutex.Unlock()
 			timeout := make(chan bool, 1)
 			go func() {
-				time.Sleep(config.GlobalConf.MaxTransactionTime)
+				time.Sleep(config.GlobalConf.MaxTransactionTime * time.Second)
 				timeout <- true
 			}()
 			for {
@@ -383,7 +383,6 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 					}
 					ac.transactionMutex.Unlock()
 					break
-
 				}
 			}
 		}
@@ -431,7 +430,7 @@ func (ac *acNodePageElem) init() {
 	ac.childMutex = new(sync.Mutex)
 	ac.nodeChildMutex = make(map[byte]*sync.Mutex)
 	ac.transactionMutex = new(sync.Mutex)
-	ac.transactionChannel = make(chan int, 1000)
+	ac.transactionChannel = make(chan int, 10)
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {
