@@ -221,6 +221,7 @@ func (ac *acNodeRoot) setEndTime(key string, end int64, tranID int) bool {
 	return false
 }
 
+//DoSomething
 func (ac *acNodeRoot) deleteNode(key string, tranID int) bool {
 	node := ac.search(key)
 	if ret := node.transaction(tranID); ret == 1 {
@@ -323,6 +324,7 @@ type acNodePageElem struct {
 func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 	ret = 1
 	ac.transactionMutex.Lock()
+	defer ac.transactionMutex.Unlock()
 	if tranID < 0 {
 		ac.transactionOldID = ac.transactionID
 		ac.transactionID = 0
@@ -340,21 +342,17 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 		}
 		ac.transactionChannel <- ac.transactionOldID
 		if tranID == -2 {
-			ac.transactionMutex.Unlock()
 			//回滚
 			return
 		}
-		ac.transactionMutex.Unlock()
 	} else if ac.transactionID == 0 {
 		if tranID != 0 {
 			ac.transactionID = tranID
-			ac.transactionMutex.Unlock()
 			//抢占锁
 			return
 		}
 	} else {
 		if ac.transactionID == tranID {
-			ac.transactionMutex.Unlock()
 			//同个事务
 			return
 		} else {
@@ -365,10 +363,12 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 				timeout <- true
 			}()
 			for {
+				lgd.Error("wait")
 				//等待老事务结束, or 超时
 				select {
 				case <-timeout:
 					ret = 3
+					ac.transactionMutex.Lock()
 					return
 				case id := <-ac.transactionChannel:
 					if id != ac.transactionOldID {
@@ -377,11 +377,9 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 					ac.transactionMutex.Lock()
 					if tranID != 0 {
 						ac.transactionID = tranID
-						ac.transactionMutex.Unlock()
 						//新的事务抢占锁
 						return
 					}
-					ac.transactionMutex.Unlock()
 					break
 				}
 			}
