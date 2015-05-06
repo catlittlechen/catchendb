@@ -24,7 +24,6 @@ func handleSet(keyword url.Values, tranObj *transaction) []byte {
 		lgd.Error("set fail! key[%s] value[%s]", key, value)
 		rsp.C = ERR_CMD_SET
 	}
-	go replicationData(keyword)
 	if tranObj.isBegin() {
 		_, start, end := node.Get(key)
 		d := new(node.Data)
@@ -33,6 +32,8 @@ func handleSet(keyword url.Values, tranObj *transaction) []byte {
 		d.StartTime = start
 		d.EndTime = end
 		tranObj.push(INSERT_TYPE, d)
+	} else {
+		go replicationData(keyword)
 	}
 	return util.JsonOut(rsp)
 }
@@ -67,11 +68,12 @@ func handleDel(keyword url.Values, tranObj *transaction) []byte {
 		lgd.Error("del fail! key[%s]", key)
 		rsp.C = ERR_CMD_DEL
 	}
-	go replicationData(keyword)
 	if tranObj.isBegin() {
 		d := new(node.Data)
 		d.Key = key
 		tranObj.push(DELETE_TYPE, d)
+	} else {
+		go replicationData(keyword)
 	}
 	return util.JsonOut(rsp)
 }
@@ -106,6 +108,8 @@ func handleSetEx(keyword url.Values, tranObj *transaction) []byte {
 		d.StartTime = start
 		d.EndTime = end
 		tranObj.push(INSERT_TYPE, d)
+	} else {
+		go replicationData(keyword)
 	}
 	return util.JsonOut(rsp)
 }
@@ -133,6 +137,8 @@ func handleDelay(keyword url.Values, tranObj *transaction) []byte {
 		d.StartTime = int64(startTime)
 		d.EndTime = end
 		tranObj.push(UPDATE_TYPE, d)
+	} else {
+		go replicationData(keyword)
 	}
 	return util.JsonOut(rsp)
 }
@@ -160,6 +166,8 @@ func handleExpire(keyword url.Values, tranObj *transaction) []byte {
 		d.StartTime = start
 		d.EndTime = int64(endTime)
 		tranObj.push(UPDATE_TYPE, d)
+	} else {
+		go replicationData(keyword)
 	}
 	return util.JsonOut(rsp)
 }

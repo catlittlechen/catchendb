@@ -2,6 +2,8 @@ package logic
 
 import (
 	"catchendb/src/node"
+	"fmt"
+	"net/url"
 	"sync"
 )
 
@@ -66,12 +68,22 @@ func (t *transaction) unInit() {
 func (t *transaction) commit() (res int) {
 	t.ID = -1
 	for _, tl := range t.ChangeLog {
+		keyword := url.Values{}
 		switch tl.typ {
 		case INSERT_TYPE, UPDATE_TYPE:
 			node.Put(tl.newData.Key, tl.newData.Value, tl.newData.StartTime, tl.newData.EndTime, t.ID)
+			keyword.Add(URL_CMD, CMD_SETEX)
+			keyword.Add(URL_KEY, tl.newData.Key)
+			keyword.Add(URL_VALUE, tl.newData.Value)
+			keyword.Add(URL_START, fmt.Sprintf("%d", tl.newData.StartTime))
+			keyword.Add(URL_END, fmt.Sprintf("%d", tl.newData.EndTime))
 		case DELETE_TYPE:
 			node.Del(tl.newData.Key, t.ID)
+			keyword.Add(URL_CMD, CMD_DEL)
+			keyword.Add(URL_KEY, tl.newData.Key)
 		}
+
+		go replicationData(keyword)
 	}
 	t.unInit()
 	return
