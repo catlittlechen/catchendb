@@ -20,11 +20,15 @@ func handleSet(keyword url.Values, tranObj *transaction) []byte {
 	rsp := Rsp{
 		C: 0,
 	}
-	if !node.Put(key, value, 0, 0, tranObj.getID()) {
+	tid := 0
+	if tranObj != nil {
+		tid = tranObj.getID()
+	}
+	if !node.Put(key, value, 0, 0, tid) {
 		lgd.Error("set fail! key[%s] value[%s]", key, value)
 		rsp.C = ERR_CMD_SET
 	}
-	if tranObj.isBegin() {
+	if tranObj != nil && tranObj.isBegin() {
 		_, start, end := node.Get(key)
 		d := new(node.Data)
 		d.Key = key
@@ -64,11 +68,15 @@ func handleDel(keyword url.Values, tranObj *transaction) []byte {
 	rsp := Rsp{
 		C: 0,
 	}
-	if !node.Del(key, tranObj.getID()) {
+	tid := 0
+	if tranObj != nil {
+		tid = tranObj.getID()
+	}
+	if !node.Del(key, tid) {
 		lgd.Error("del fail! key[%s]", key)
 		rsp.C = ERR_CMD_DEL
 	}
-	if tranObj.isBegin() {
+	if tranObj != nil && tranObj.isBegin() {
 		d := new(node.Data)
 		d.Key = key
 		tranObj.push(DELETE_TYPE, d)
@@ -94,13 +102,16 @@ func handleSetEx(keyword url.Values, tranObj *transaction) []byte {
 		rsp.C = ERR_END_TIME
 		return util.JsonOut(rsp)
 	}
-
-	if !node.Put(key, value, int64(startTime), int64(endTime), tranObj.getID()) {
+	tid := 0
+	if tranObj != nil {
+		tid = tranObj.getID()
+	}
+	if !node.Put(key, value, int64(startTime), int64(endTime), tid) {
 		lgd.Error("set fail! key[%s] value[%s]", key, value)
 		rsp.C = ERR_CMD_SET
 	}
-	go replicationData(keyword)
-	if tranObj.isBegin() {
+
+	if tranObj != nil && tranObj.isBegin() {
 		_, start, end := node.Get(key)
 		d := new(node.Data)
 		d.Key = key
@@ -124,12 +135,15 @@ func handleDelay(keyword url.Values, tranObj *transaction) []byte {
 		rsp.C = ERR_START_TIME
 		return util.JsonOut(rsp)
 	}
-	if !node.Set(key, int64(startTime), 0, tranObj.getID()) {
+	tid := 0
+	if tranObj != nil {
+		tid = tranObj.getID()
+	}
+	if !node.Set(key, int64(startTime), 0, tid) {
 		lgd.Error("delay fail! key[%s] startTime[%d]", key, startTime)
 		rsp.C = ERR_CMD_DELAY
 	}
-	go replicationData(keyword)
-	if tranObj.isBegin() {
+	if tranObj != nil && tranObj.isBegin() {
 		value, _, end := node.Get(key)
 		d := new(node.Data)
 		d.Key = key
@@ -153,12 +167,15 @@ func handleExpire(keyword url.Values, tranObj *transaction) []byte {
 		rsp.C = ERR_END_TIME
 		return util.JsonOut(rsp)
 	}
-	if !node.Set(key, 0, int64(endTime), tranObj.getID()) {
+	tid := 0
+	if tranObj != nil {
+		tid = tranObj.getID()
+	}
+	if !node.Set(key, 0, int64(endTime), tid) {
 		lgd.Error("delay fail! key[%s] endTime[%d]", key, endTime)
 		rsp.C = ERR_CMD_EXPIRE
 	}
-	go replicationData(keyword)
-	if tranObj.isBegin() {
+	if tranObj != nil && tranObj.isBegin() {
 		value, start, _ := node.Get(key)
 		d := new(node.Data)
 		d.Key = key
