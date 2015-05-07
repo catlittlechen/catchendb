@@ -17,8 +17,8 @@
 	</masterslave>
 
 	<pagesize>256</pagesize>
-	<maxonlyuserconnection>10</maxonlyuserconnection>
-	<maxuserconnection>10</maxuserconnection>
+	<maxonlyuserconnection>60</maxonlyuserconnection>
+	<maxuserconnection>60</maxuserconnection>
 
 	<maxtransactiontime>60</maxtransactiontime>
 </config>

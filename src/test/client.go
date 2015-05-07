@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +16,19 @@ type Rsp struct {
 	C int    `json:"c"`
 	M string `json:"m"`
 	D string `json:"d"`
+}
+
+type Req struct {
+	C string `json:"c"`
+
+	UserName  string `json:"usr"`
+	PassWord  string `json:"pas"`
+	Privilege int    `json:"pri"`
+
+	Key       string `json:"key"`
+	Value     string `json:"val"`
+	StartTime int64  `json:"sta"`
+	EndTime   int64  `json:"end"`
 }
 
 var displayHelp = flag.Bool("help", false, "displayHelpMessage")
@@ -46,7 +58,7 @@ func mainloop(capts, begin int) {
 	bp := ""
 	data := make([]byte, 10240)
 	data2 := make([]byte, 10240)
-	var urlData url.Values
+	var req Req
 	var count int
 	var err error
 
@@ -63,11 +75,12 @@ func mainloop(capts, begin int) {
 		return
 	}
 
-	urlData = url.Values{}
-	urlData.Add(handle.URL_CMD, handle.CMD_AUT)
-	urlData.Add(handle.URL_USER, *username)
-	urlData.Add(handle.URL_PASS, *password)
-	_, err = conn.Write([]byte(urlData.Encode()))
+	req = Req{
+		C:        handle.CMD_AUT,
+		UserName: *username,
+		PassWord: *password,
+	}
+	_, err = conn.Write(util.JsonOut(req))
 	if err != nil {
 		fmt.Println("ccdb>Fatal Error " + err.Error() + "\n")
 		return

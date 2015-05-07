@@ -2,7 +2,7 @@ package handle
 
 import (
 	"catchendb/src/util"
-	"net/url"
+	"strconv"
 )
 
 func HandleUserAdd(data []byte) []byte {
@@ -10,12 +10,17 @@ func HandleUserAdd(data []byte) []byte {
 	if len(argv) != 4 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_UADD)
-	urlData.Add(URL_USER, argv[1])
-	urlData.Add(URL_PASS, argv[2])
-	urlData.Add(URL_PRIV, argv[3])
-	return []byte(urlData.Encode())
+	pri, err := strconv.Atoi(argv[3])
+	if err != nil {
+		return nil
+	}
+	req := Req{
+		C:         CMD_UADD,
+		UserName:  argv[1],
+		PassWord:  argv[2],
+		Privilege: pri,
+	}
+	return util.JsonOut(req)
 }
 
 func handleUserDel(data []byte) []byte {
@@ -23,10 +28,11 @@ func handleUserDel(data []byte) []byte {
 	if len(argv) != 2 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_UDEL)
-	urlData.Add(URL_USER, argv[1])
-	return []byte(urlData.Encode())
+	req := Req{
+		C:        CMD_UDEL,
+		UserName: argv[1],
+	}
+	return util.JsonOut(req)
 }
 
 func handleUserPas(data []byte) []byte {
@@ -34,10 +40,11 @@ func handleUserPas(data []byte) []byte {
 	if len(argv) != 2 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_UPAS)
-	urlData.Add(URL_PASS, argv[1])
-	return []byte(urlData.Encode())
+	req := Req{
+		C:        CMD_UPAS,
+		UserName: argv[1],
+	}
+	return util.JsonOut(req)
 }
 
 func handleUserPri(data []byte) []byte {
@@ -45,10 +52,15 @@ func handleUserPri(data []byte) []byte {
 	if len(argv) != 2 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_UPRI)
-	urlData.Add(URL_PRIV, argv[1])
-	return []byte(urlData.Encode())
+	pri, err := strconv.Atoi(argv[1])
+	if err != nil {
+		return nil
+	}
+	req := Req{
+		C:         CMD_UPRI,
+		Privilege: pri,
+	}
+	return util.JsonOut(req)
 }
 
 func init() {
