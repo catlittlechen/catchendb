@@ -1,10 +1,8 @@
 package node
 
 import (
-	"catchendb/src/config"
 	"runtime/debug"
 	"sync"
-	"time"
 )
 
 import lgd "code.google.com/p/log4go"
@@ -314,33 +312,14 @@ type acNodePageElem struct {
 	dataMutex *sync.Mutex
 	data      *acNodeData
 
-	transactionID      int
-	transactionOldID   int
-	transactionMutex   *sync.Mutex
-	transactionChannel chan int
+	transactionID int
 }
 
 //@ret 1 success 2 go to the next action 3 timeout
 func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 	ret = 1
-	ac.transactionMutex.Lock()
-	defer ac.transactionMutex.Unlock()
 	if tranID < 0 {
-		ac.transactionOldID = ac.transactionID
 		ac.transactionID = 0
-		if len(ac.transactionChannel) > 0 {
-			timeout := make(chan bool, 1)
-			go func() {
-				time.Sleep(100 * time.Millisecond)
-				timeout <- true
-			}()
-			select {
-			case <-timeout:
-				lgd.Debug("wait for channel timeout")
-			case <-ac.transactionChannel:
-			}
-		}
-		ac.transactionChannel <- ac.transactionOldID
 		if tranID == -2 {
 			//回滚
 			return
@@ -356,33 +335,8 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 			//同个事务
 			return
 		} else {
-			ac.transactionMutex.Unlock()
-			timeout := make(chan bool, 1)
-			go func() {
-				time.Sleep(config.GlobalConf.MaxTransactionTime * time.Second)
-				timeout <- true
-			}()
-			for {
-				lgd.Error("wait")
-				//等待老事务结束, or 超时
-				select {
-				case <-timeout:
-					ret = 3
-					ac.transactionMutex.Lock()
-					return
-				case id := <-ac.transactionChannel:
-					if id != ac.transactionOldID {
-						continue
-					}
-					ac.transactionMutex.Lock()
-					if tranID != 0 {
-						ac.transactionID = tranID
-						//新的事务抢占锁
-						return
-					}
-					break
-				}
-			}
+			ret = 3
+			return
 		}
 	}
 	ret = 2
@@ -427,8 +381,6 @@ func (ac *acNodePageElem) init() {
 	ac.child = make(map[byte]*acNodePageElem)
 	ac.childMutex = new(sync.Mutex)
 	ac.nodeChildMutex = make(map[byte]*sync.Mutex)
-	ac.transactionMutex = new(sync.Mutex)
-	ac.transactionChannel = make(chan int, 10)
 }
 
 func (ac *acNodePageElem) compareKey(key string) (ok bool, lenc int, index int) {
