@@ -138,11 +138,11 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 		}
 		if lenc == 0 {
 			parent.unlock(k)
-			if node.isEnd() {
+			if child.isEnd() {
 				go ac.deleteNode(key)
 				return nil
 			}
-			if len(node.value()) == 0 {
+			if len(child.value()) == 0 {
 				return nil
 			}
 			return child
