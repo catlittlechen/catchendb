@@ -39,11 +39,6 @@ func replicationData(data url.Values) {
 	channelMutex.Unlock()
 }
 
-func Replication(name string, conn *net.TCPConn) {
-	replicationMaster(name, conn)
-	return
-}
-
 func replicationMaster(name string, conn *net.TCPConn) {
 	channelReplication := make(chan url.Values, 1000)
 	addReplicationChannel(name, &channelReplication)
@@ -179,7 +174,7 @@ func syncData(conn *net.TCPConn) {
 			lgd.Error("Fatal Error %s", err)
 			return
 		}
-		_, err = conn.Write(mapAction(keyword, 2, true))
+		_, err = conn.Write(mapAction(keyword, 2, true, nil))
 		if err != nil {
 			lgd.Error("Sync Fatal Error %s", err)
 			return

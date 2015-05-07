@@ -12,26 +12,26 @@ const (
 	maxAlloacSize = 0xFFFFFFF
 )
 
-func Put(key, value string, startTime, endTime int64) bool {
-	return iRoot.insertNode(key, value, startTime, endTime)
+func Put(key, value string, startTime, endTime int64, tranID int) bool {
+	return iRoot.insertNode(key, value, startTime, endTime, tranID)
 }
 
 func Get(key string) (string, int64, int64) {
 	return iRoot.searchNode(key)
 }
 
-func Set(key string, start, end int64) bool {
-	if start != 0 && !iRoot.setStartTime(key, start) {
+func Set(key string, start, end int64, tranID int) bool {
+	if start != 0 && !iRoot.setStartTime(key, start, tranID) {
 		return false
 	}
-	if end != 0 && !iRoot.setEndTime(key, end) {
+	if end != 0 && !iRoot.setEndTime(key, end, tranID) {
 		return false
 	}
 	return true
 }
 
-func Del(key string) bool {
-	return iRoot.deleteNode(key)
+func Del(key string, tranID int) bool {
+	return iRoot.deleteNode(key, tranID)
 }
 
 func OutPut(channel chan []byte, sign []byte) {

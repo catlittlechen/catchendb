@@ -7,19 +7,22 @@ type Rsp struct {
 }
 
 const (
-	CMD_AUT    = "aut"
-	CMD_UADD   = "useradd"
-	CMD_UDEL   = "userdelete"
-	CMD_UPAS   = "userpass"
-	CMD_UPRI   = "userprivilege"
-	CMD_SET    = "set"
-	CMD_GET    = "get"
-	CMD_DEL    = "del"
-	CMD_SETEX  = "setex"
-	CMD_DELAY  = "delay"
-	CMD_EXPIRE = "expire"
-	CMD_TTL    = "ttl"
-	CMD_TTS    = "tts"
+	CMD_AUT      = "aut"
+	CMD_UADD     = "useradd"
+	CMD_UDEL     = "userdelete"
+	CMD_UPAS     = "userpass"
+	CMD_UPRI     = "userprivilege"
+	CMD_SET      = "set"
+	CMD_GET      = "get"
+	CMD_DEL      = "del"
+	CMD_SETEX    = "setex"
+	CMD_DELAY    = "delay"
+	CMD_EXPIRE   = "expire"
+	CMD_TTL      = "ttl"
+	CMD_TTS      = "tts"
+	CMD_BEGIN    = "begin"
+	CMD_COMMIT   = "commit"
+	CMD_ROLLBACK = "rollback"
 )
 
 const (
@@ -43,6 +46,10 @@ const (
 	ERR_END_TIME   = 304
 	ERR_CMD_DELAY  = 305
 	ERR_CMD_EXPIRE = 306
+
+	ERR_TRA_BEGIN    = 401
+	ERR_TRA_NO_BEGIN = 402
+	ERR_TRA_USER     = 403
 )
 
 const (

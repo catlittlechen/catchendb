@@ -9,7 +9,7 @@ import (
 
 //import lgd "code.google.com/p/log4go"
 
-func handleUserAut(keyword url.Values) (ok bool, username string) {
+func handleUserAut(keyword url.Values, tranObj *transaction) (ok bool, username string) {
 	code := keyword.Get(URL_CMD)
 	username = keyword.Get(URL_USER)
 	password := keyword.Get(URL_PASS)
@@ -20,7 +20,7 @@ func handleUserAut(keyword url.Values) (ok bool, username string) {
 	return
 }
 
-func handleUserAdd(keyword url.Values) []byte {
+func handleUserAdd(keyword url.Values, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	username := keyword.Get(URL_USER)
 	password := keyword.Get(URL_PASS)
@@ -35,7 +35,7 @@ func handleUserAdd(keyword url.Values) []byte {
 	return util.JsonOut(rsp)
 }
 
-func handleUserDelete(keyword url.Values) []byte {
+func handleUserDelete(keyword url.Values, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	username := keyword.Get(URL_USER)
 	if !user.DeleteUser(username) {
@@ -44,7 +44,7 @@ func handleUserDelete(keyword url.Values) []byte {
 	return util.JsonOut(rsp)
 }
 
-func handleUserPass(keyword url.Values) []byte {
+func handleUserPass(keyword url.Values, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	username := keyword.Get(URL_USER)
 	password := keyword.Get(URL_PASS)
@@ -54,7 +54,7 @@ func handleUserPass(keyword url.Values) []byte {
 	return util.JsonOut(rsp)
 }
 
-func handleUserPriv(keyword url.Values) []byte {
+func handleUserPriv(keyword url.Values, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	username := keyword.Get(URL_USER)
 	privilege, err := strconv.Atoi(keyword.Get(URL_PRIV))

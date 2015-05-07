@@ -37,12 +37,11 @@ func (ac *acNodeRoot) createData(key, value string, start, end int64, node *acNo
 	return node.setData(key, value, start, end)
 }
 
-func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
+func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int) bool {
 	defer func() {
 		if re := recover(); re != nil {
 			lgd.Error("recover %s", re)
 			lgd.Error("stack %s", debug.Stack())
-			lgd.Info("key %s", key)
 		}
 	}()
 
@@ -62,6 +61,14 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 				node.unlock(k)
 				return false
 			}
+			if ret := child.transaction(tranID); ret == 1 {
+				child.setValue("")
+				child.setStartTime(0)
+				child.setEndTime(0)
+			} else if ret == 3 {
+				node.unlock(k)
+				return false
+			}
 			node.setChild(k, child)
 			node.unlock(k)
 			return true
@@ -75,6 +82,15 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 				node.unlock(k)
 				return false
 			}
+			if ret := child3.transaction(tranID); ret == 1 {
+				child3.setValue("")
+				child3.setStartTime(0)
+				child3.setEndTime(0)
+			} else if ret == 3 {
+				node.unlock(k)
+				return false
+			}
+
 			child.setKey(string(acKey[index:]))
 			node.setChild(k, child2)
 			child2.setChild(key[index], child3)
@@ -89,6 +105,13 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 			key = key[index:]
 			node = child
 		case 0:
+			if ret := child.transaction(tranID); ret == 1 {
+				node.unlock(k)
+				return true
+			} else if ret == 3 {
+				node.unlock(k)
+				return false
+			}
 			if child.setValue(value) {
 				child.setStartTime(start)
 				child.setEndTime(end)
@@ -101,6 +124,14 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64) bool {
 		case 1:
 			child2 := ac.createNode(key, value, start, end, node)
 			if child2 == nil {
+				node.unlock(k)
+				return false
+			}
+			if ret := child2.transaction(tranID); ret == 1 {
+				child2.setValue("")
+				child2.setStartTime(0)
+				child2.setEndTime(0)
+			} else if ret == 3 {
 				node.unlock(k)
 				return false
 			}
@@ -139,7 +170,7 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 		if lenc == 0 {
 			parent.unlock(k)
 			if child.isEnd() {
-				go ac.deleteNode(key)
+				go ac.deleteNode(key, 0)
 				return nil
 			}
 			if len(child.value()) == 0 {
@@ -163,22 +194,38 @@ func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
 	return
 }
 
-func (ac *acNodeRoot) setStartTime(key string, start int64) bool {
+func (ac *acNodeRoot) setStartTime(key string, start int64, tranID int) bool {
 	if node := ac.search(key); node != nil {
+		if ret := node.transaction(tranID); ret == 1 {
+			return true
+		} else if ret == 3 {
+			return false
+		}
 		return node.setStartTime(start)
 	}
 	return false
 }
 
-func (ac *acNodeRoot) setEndTime(key string, end int64) bool {
+func (ac *acNodeRoot) setEndTime(key string, end int64, tranID int) bool {
 	if node := ac.search(key); node != nil {
+		if ret := node.transaction(tranID); ret == 1 {
+			return true
+		} else if ret == 3 {
+			return false
+		}
 		return node.setEndTime(end)
 	}
 	return false
 }
 
-func (ac *acNodeRoot) deleteNode(key string) bool {
+//DoSomething
+func (ac *acNodeRoot) deleteNode(key string, tranID int) bool {
 	node := ac.search(key)
+	if ret := node.transaction(tranID); ret == 1 {
+		return true
+	} else if ret == 3 {
+		return false
+	}
 	node.setValue("")
 	node.setStartTime(0)
 	node.setEndTime(0)
@@ -244,7 +291,7 @@ func (ac *acNodeRoot) input(line []byte) bool {
 		return false
 	}
 	go func() {
-		if !ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime) {
+		if !ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime, 0) {
 			lgd.Error("insert node fail! --> data %+v", d)
 		}
 	}()
@@ -263,6 +310,36 @@ type acNodePageElem struct {
 
 	dataMutex *sync.Mutex
 	data      *acNodeData
+
+	transactionID int
+}
+
+//@ret 1 success 2 go to the next action 3 timeout
+func (ac *acNodePageElem) transaction(tranID int) (ret int) {
+	ret = 1
+	if tranID < 0 {
+		ac.transactionID = 0
+		if tranID == -2 {
+			//回滚
+			return
+		}
+	} else if ac.transactionID == 0 {
+		if tranID != 0 {
+			ac.transactionID = tranID
+			//抢占锁
+			return
+		}
+	} else {
+		if ac.transactionID == tranID {
+			//同个事务
+			return
+		} else {
+			ret = 3
+			return
+		}
+	}
+	ret = 2
+	return
 }
 
 func (ac *acNodePageElem) setData(key, value string, start, end int64) bool {
