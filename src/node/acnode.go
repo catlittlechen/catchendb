@@ -42,7 +42,6 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int
 		if re := recover(); re != nil {
 			lgd.Error("recover %s", re)
 			lgd.Error("stack %s", debug.Stack())
-			lgd.Info("key %s", key)
 		}
 	}()
 

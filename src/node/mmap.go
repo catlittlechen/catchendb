@@ -3,10 +3,7 @@ package node
 import (
 	"sync"
 	"syscall"
-	"unsafe"
 )
-
-import lgd "code.google.com/p/log4go"
 
 const (
 	minMmapSize = 1 << 22
@@ -35,7 +32,6 @@ func mmap(size int) ([]byte, error) {
 	mmapLock.Lock()
 	defer mmapLock.Unlock()
 	dataMap, err := syscall.Mmap(-1, 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_ANONYMOUS|syscall.MAP_SHARED)
-	lgd.Debug("sizeof dataMap[%d]", unsafe.Sizeof(dataMap))
 	return dataMap, err
 }
 

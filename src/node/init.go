@@ -2,10 +2,7 @@ package node
 
 import (
 	"catchendb/src/config"
-	"time"
 )
-
-import lgd "code.google.com/p/log4go"
 
 var (
 	pageSize int
@@ -16,18 +13,10 @@ const (
 )
 
 func Put(key, value string, startTime, endTime int64, tranID int) bool {
-	times := time.Now().UnixNano()
-	defer func() {
-		lgd.Debug("set %d", time.Now().UnixNano()-times)
-	}()
 	return iRoot.insertNode(key, value, startTime, endTime, tranID)
 }
 
 func Get(key string) (string, int64, int64) {
-	times := time.Now().UnixNano()
-	defer func() {
-		lgd.Debug("get %d", time.Now().UnixNano()-times)
-	}()
 	return iRoot.searchNode(key)
 }
 

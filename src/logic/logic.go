@@ -76,7 +76,6 @@ func ClientLogic(conn *net.TCPConn) {
 		}
 
 		urlStr = string(data[:count])
-		//lgd.Trace("%s", urlStr)
 		keyword, err = url.ParseQuery(urlStr)
 		if err != nil {
 			lgd.Warn("ParseQuery fail with the url %s", urlStr)
