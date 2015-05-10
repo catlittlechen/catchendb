@@ -2,7 +2,6 @@ package handle
 
 import (
 	"catchendb/src/util"
-	"net/url"
 )
 
 func HandleBegin(data []byte) []byte {
@@ -10,9 +9,11 @@ func HandleBegin(data []byte) []byte {
 	if len(argv) != 1 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_BEGIN)
-	return []byte(urlData.Encode())
+
+	req := Req{
+		C: CMD_BEGIN,
+	}
+	return util.JsonOut(req)
 }
 
 func HandleRollback(data []byte) []byte {
@@ -20,9 +21,10 @@ func HandleRollback(data []byte) []byte {
 	if len(argv) != 1 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_ROLLBACK)
-	return []byte(urlData.Encode())
+	req := Req{
+		C: CMD_ROLLBACK,
+	}
+	return util.JsonOut(req)
 }
 
 func HandleCommit(data []byte) []byte {
@@ -30,9 +32,10 @@ func HandleCommit(data []byte) []byte {
 	if len(argv) != 1 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_COMMIT)
-	return []byte(urlData.Encode())
+	req := Req{
+		C: CMD_COMMIT,
+	}
+	return util.JsonOut(req)
 }
 
 func init() {

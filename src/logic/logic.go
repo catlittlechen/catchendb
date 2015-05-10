@@ -4,8 +4,8 @@ import (
 	"catchendb/src/config"
 	"catchendb/src/user"
 	"catchendb/src/util"
+	"encoding/json"
 	"net"
-	"net/url"
 	"sync"
 )
 
@@ -61,8 +61,7 @@ func ClientLogic(conn *net.TCPConn) {
 		C: ERR_URL_PARSE,
 	})
 	tranObj := new(transaction)
-	var urlStr string
-	var keyword url.Values
+	var req Req
 	for {
 		defer func() {
 			if tranObj.isBegin() {
@@ -75,10 +74,10 @@ func ClientLogic(conn *net.TCPConn) {
 			return
 		}
 
-		urlStr = string(data[:count])
-		keyword, err = url.ParseQuery(urlStr)
+		req = Req{}
+		err = json.Unmarshal(data[:count], &req)
 		if err != nil {
-			lgd.Warn("ParseQuery fail with the url %s", urlStr)
+			lgd.Warn("ParseQuery fail with the data %s", string(data[:count]))
 			_, err = conn.Write(errRes)
 			if err != nil {
 				lgd.Warn("write error[%s]", err)
@@ -87,7 +86,7 @@ func ClientLogic(conn *net.TCPConn) {
 			continue
 		}
 
-		ok, res = clientTransactionLogic(keyword, tranObj)
+		ok, res = clientTransactionLogic(req, tranObj)
 		if !ok {
 			_, err = conn.Write(res)
 			if err != nil {
@@ -97,7 +96,7 @@ func ClientLogic(conn *net.TCPConn) {
 			continue
 		}
 		privilege = user.GetPrivilege(name)
-		_, err = conn.Write(mapAction(keyword, privilege, false, tranObj))
+		_, err = conn.Write(mapAction(req, privilege, false, tranObj))
 		if err != nil {
 			lgd.Warn("write error[%s]", err)
 			return
@@ -105,9 +104,9 @@ func ClientLogic(conn *net.TCPConn) {
 	}
 }
 
-func clientTransactionLogic(keyword url.Values, tranObj *transaction) (normal bool, res []byte) {
+func clientTransactionLogic(req Req, tranObj *transaction) (normal bool, res []byte) {
 	rsp := Rsp{}
-	switch keyword.Get(URL_CMD) {
+	switch req.C {
 	case CMD_BEGIN:
 		if tranObj.isBegin() {
 			rsp.C = ERR_TRA_BEGIN
@@ -154,16 +153,15 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 	lgd.Info("Request %s", string(data))
 
 	rsp := Rsp{}
-	urlStr := string(data)
-
-	keyword, err := url.ParseQuery(urlStr)
+	req := Req{}
+	err := json.Unmarshal(data, &req)
 	if err != nil {
-		lgd.Error("ParseQuery fail with the url %s", urlStr)
+		lgd.Error("ParseQuery fail with the data %s", string(data))
 		rsp.C = ERR_URL_PARSE
 		r = util.JsonOut(rsp)
 		return
 	}
-	ok, name = handleUserAut(keyword, nil)
+	ok, name = handleUserAut(req, nil)
 	if !ok {
 		rsp.C = ERR_ACCESS_DENIED
 		r = util.JsonOut(rsp)

@@ -3,7 +3,6 @@ package logic
 import (
 	"catchendb/src/node"
 	"catchendb/src/util"
-	"net/url"
 	"strconv"
 	"time"
 )
@@ -14,9 +13,7 @@ var (
 	nowTime int64
 )
 
-func handleSet(keyword url.Values, tranObj *transaction) []byte {
-	key := keyword.Get(URL_KEY)
-	value := keyword.Get(URL_VALUE)
+func handleSet(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{
 		C: 0,
 	}
@@ -24,26 +21,26 @@ func handleSet(keyword url.Values, tranObj *transaction) []byte {
 	if tranObj != nil {
 		tid = tranObj.getID()
 	}
-	if !node.Put(key, value, 0, 0, tid) {
-		lgd.Error("set fail! key[%s] value[%s]", key, value)
+	if !node.Put(req.Key, req.Value, 0, 0, tid) {
+		lgd.Error("set fail! key[%s] value[%s]", req.Key, req.Value)
 		rsp.C = ERR_CMD_SET
 	}
 	if tranObj != nil && tranObj.isBegin() {
-		_, start, end := node.Get(key)
+		_, start, end := node.Get(req.Key)
 		d := new(node.Data)
-		d.Key = key
-		d.Value = value
+		d.Key = req.Key
+		d.Value = req.Value
 		d.StartTime = start
 		d.EndTime = end
 		tranObj.push(INSERT_TYPE, d)
 	} else {
-		go replicationData(keyword)
+		go replicationData(req)
 	}
 	return util.JsonOut(rsp)
 }
 
-func handleGet(keyword url.Values, tranObj *transaction) []byte {
-	key := keyword.Get(URL_KEY)
+func handleGet(req Req, tranObj *transaction) []byte {
+	key := req.Key
 	rsp := Rsp{
 		C: 0,
 	}
@@ -63,8 +60,8 @@ func handleGet(keyword url.Values, tranObj *transaction) []byte {
 	return util.JsonOut(rsp)
 }
 
-func handleDel(keyword url.Values, tranObj *transaction) []byte {
-	key := keyword.Get(URL_KEY)
+func handleDel(req Req, tranObj *transaction) []byte {
+	key := req.Key
 	rsp := Rsp{
 		C: 0,
 	}
@@ -81,32 +78,22 @@ func handleDel(keyword url.Values, tranObj *transaction) []byte {
 		d.Key = key
 		tranObj.push(DELETE_TYPE, d)
 	} else {
-		go replicationData(keyword)
+		go replicationData(req)
 	}
 	return util.JsonOut(rsp)
 }
 
-func handleSetEx(keyword url.Values, tranObj *transaction) []byte {
-	key := keyword.Get(URL_KEY)
+func handleSetEx(req Req, tranObj *transaction) []byte {
+	key := req.Key
 	rsp := Rsp{
 		C: 0,
 	}
-	value := keyword.Get(URL_VALUE)
-	startTime, err := strconv.Atoi(keyword.Get(URL_START))
-	if err != nil {
-		rsp.C = ERR_START_TIME
-		return util.JsonOut(rsp)
-	}
-	endTime, err := strconv.Atoi(keyword.Get(URL_END))
-	if err != nil {
-		rsp.C = ERR_END_TIME
-		return util.JsonOut(rsp)
-	}
+	value := req.Value
 	tid := 0
 	if tranObj != nil {
 		tid = tranObj.getID()
 	}
-	if !node.Put(key, value, int64(startTime), int64(endTime), tid) {
+	if !node.Put(key, value, req.StartTime, req.EndTime, tid) {
 		lgd.Error("set fail! key[%s] value[%s]", key, value)
 		rsp.C = ERR_CMD_SET
 	}
@@ -120,27 +107,22 @@ func handleSetEx(keyword url.Values, tranObj *transaction) []byte {
 		d.EndTime = end
 		tranObj.push(INSERT_TYPE, d)
 	} else {
-		go replicationData(keyword)
+		go replicationData(req)
 	}
 	return util.JsonOut(rsp)
 }
 
-func handleDelay(keyword url.Values, tranObj *transaction) []byte {
-	key := keyword.Get(URL_KEY)
+func handleDelay(req Req, tranObj *transaction) []byte {
+	key := req.Key
 	rsp := Rsp{
 		C: 0,
-	}
-	startTime, err := strconv.Atoi(keyword.Get(URL_START))
-	if err != nil {
-		rsp.C = ERR_START_TIME
-		return util.JsonOut(rsp)
 	}
 	tid := 0
 	if tranObj != nil {
 		tid = tranObj.getID()
 	}
-	if !node.Set(key, int64(startTime), 0, tid) {
-		lgd.Error("delay fail! key[%s] startTime[%d]", key, startTime)
+	if !node.Set(key, req.StartTime, 0, tid) {
+		lgd.Error("delay fail! key[%s] startTime[%d]", key, req.StartTime)
 		rsp.C = ERR_CMD_DELAY
 	}
 	if tranObj != nil && tranObj.isBegin() {
@@ -148,31 +130,26 @@ func handleDelay(keyword url.Values, tranObj *transaction) []byte {
 		d := new(node.Data)
 		d.Key = key
 		d.Value = value
-		d.StartTime = int64(startTime)
+		d.StartTime = req.StartTime
 		d.EndTime = end
 		tranObj.push(UPDATE_TYPE, d)
 	} else {
-		go replicationData(keyword)
+		go replicationData(req)
 	}
 	return util.JsonOut(rsp)
 }
 
-func handleExpire(keyword url.Values, tranObj *transaction) []byte {
-	key := keyword.Get(URL_KEY)
+func handleExpire(req Req, tranObj *transaction) []byte {
+	key := req.Key
 	rsp := Rsp{
 		C: 0,
-	}
-	endTime, err := strconv.Atoi(keyword.Get(URL_END))
-	if err != nil {
-		rsp.C = ERR_END_TIME
-		return util.JsonOut(rsp)
 	}
 	tid := 0
 	if tranObj != nil {
 		tid = tranObj.getID()
 	}
-	if !node.Set(key, 0, int64(endTime), tid) {
-		lgd.Error("delay fail! key[%s] endTime[%d]", key, endTime)
+	if !node.Set(key, 0, req.EndTime, tid) {
+		lgd.Error("delay fail! key[%s] endTime[%d]", key, req.EndTime)
 		rsp.C = ERR_CMD_EXPIRE
 	}
 	if tranObj != nil && tranObj.isBegin() {
@@ -181,16 +158,16 @@ func handleExpire(keyword url.Values, tranObj *transaction) []byte {
 		d.Key = key
 		d.Value = value
 		d.StartTime = start
-		d.EndTime = int64(endTime)
+		d.EndTime = req.EndTime
 		tranObj.push(UPDATE_TYPE, d)
 	} else {
-		go replicationData(keyword)
+		go replicationData(req)
 	}
 	return util.JsonOut(rsp)
 }
 
-func handleTTL(keyword url.Values, tranObj *transaction) []byte {
-	key := keyword.Get(URL_KEY)
+func handleTTL(req Req, tranObj *transaction) []byte {
+	key := req.Key
 	rsp := Rsp{
 		C: 0,
 	}
@@ -214,8 +191,8 @@ func handleTTL(keyword url.Values, tranObj *transaction) []byte {
 	return util.JsonOut(rsp)
 }
 
-func handleTTS(keyword url.Values, tranObj *transaction) []byte {
-	key := keyword.Get(URL_KEY)
+func handleTTS(req Req, tranObj *transaction) []byte {
+	key := req.Key
 	rsp := Rsp{
 		C: 0,
 	}

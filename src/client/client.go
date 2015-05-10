@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -42,7 +41,6 @@ func mainloop() {
 	bp := ""
 	data := make([]byte, 10240)
 	data2 := make([]byte, 10240)
-	var urlData url.Values
 	var count int
 	var err error
 	in := bufio.NewReader(os.Stdin)
@@ -73,11 +71,12 @@ func mainloop() {
 		password = &bp
 	}
 
-	urlData = url.Values{}
-	urlData.Add(handle.URL_CMD, handle.CMD_AUT)
-	urlData.Add(handle.URL_USER, *username)
-	urlData.Add(handle.URL_PASS, *password)
-	_, err = conn.Write([]byte(urlData.Encode()))
+	req := handle.Req{
+		C:        handle.CMD_AUT,
+		UserName: *username,
+		PassWord: *password,
+	}
+	_, err = conn.Write(util.JsonOut(req))
 	if err != nil {
 		out.WriteString("ccdb>Fatal Error " + err.Error() + "\n")
 		return
