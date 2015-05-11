@@ -221,7 +221,8 @@ func (ac *acNodeRoot) setEndTime(key string, end int64, tranID int) bool {
 //DoSomething
 func (ac *acNodeRoot) deleteNode(key string, tranID int) bool {
 	node := ac.search(key)
-	if ret := node.transaction(tranID); ret == 1 {
+	ret := 0
+	if ret = node.transaction(tranID); ret == 1 {
 		return true
 	} else if ret == 3 {
 		return false
@@ -231,6 +232,9 @@ func (ac *acNodeRoot) deleteNode(key string, tranID int) bool {
 	node.setEndTime(0)
 
 	for node.getChildNum() == 0 {
+		if ret = node.transaction(tranID); ret != 2 {
+			return true
+		}
 		parent := node.getParent()
 		if parent == nil {
 			break
