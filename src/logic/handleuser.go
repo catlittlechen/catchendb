@@ -3,66 +3,46 @@ package logic
 import (
 	"catchendb/src/user"
 	"catchendb/src/util"
-	"net/url"
-	"strconv"
 )
 
 //import lgd "code.google.com/p/log4go"
 
-func handleUserAut(keyword url.Values) (ok bool, username string) {
-	code := keyword.Get(URL_CMD)
-	username = keyword.Get(URL_USER)
-	password := keyword.Get(URL_PASS)
-	if code != CMD_AUT {
+func handleUserAut(req Req, tranObj *transaction) (ok bool, username string) {
+	if req.C != CMD_AUT {
 		return
 	}
-	ok = user.VerifyPassword(username, password)
+	ok = user.VerifyPassword(req.UserName, req.PassWord)
+	username = req.UserName
 	return
 }
 
-func handleUserAdd(keyword url.Values) []byte {
+func handleUserAdd(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
-	username := keyword.Get(URL_USER)
-	password := keyword.Get(URL_PASS)
-	privilege, err := strconv.Atoi(keyword.Get(URL_PRIV))
-	if err != nil {
-		rsp.C = ERR_USER_PRIVILEGE
-		return util.JsonOut(rsp)
-	}
-	if !user.AddUser(username, password, privilege) {
+	if !user.AddUser(req.UserName, req.PassWord, req.Privilege) {
 		rsp.C = ERR_USER_DUPLICATE
 	}
 	return util.JsonOut(rsp)
 }
 
-func handleUserDelete(keyword url.Values) []byte {
+func handleUserDelete(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
-	username := keyword.Get(URL_USER)
-	if !user.DeleteUser(username) {
+	if !user.DeleteUser(req.UserName) {
 		rsp.C = ERR_USER_NOT_EXIST
 	}
 	return util.JsonOut(rsp)
 }
 
-func handleUserPass(keyword url.Values) []byte {
+func handleUserPass(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
-	username := keyword.Get(URL_USER)
-	password := keyword.Get(URL_PASS)
-	if !user.MotifyUserInfo(username, password, -1) {
+	if !user.MotifyUserInfo(req.UserName, req.PassWord, -1) {
 		rsp.C = ERR_USER_NOT_EXIST
 	}
 	return util.JsonOut(rsp)
 }
 
-func handleUserPriv(keyword url.Values) []byte {
+func handleUserPriv(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
-	username := keyword.Get(URL_USER)
-	privilege, err := strconv.Atoi(keyword.Get(URL_PRIV))
-	if err != nil {
-		rsp.C = ERR_PARSE_MISS
-		return util.JsonOut(rsp)
-	}
-	if !user.MotifyUserInfo(username, "", privilege) {
+	if !user.MotifyUserInfo(req.UserName, "", req.Privilege) {
 		rsp.C = ERR_USER_PRIVILEGE
 	}
 	return util.JsonOut(rsp)

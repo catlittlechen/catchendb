@@ -3,7 +3,6 @@ package logic
 import (
 	"catchendb/src/config"
 	"catchendb/src/util"
-	"net/url"
 )
 
 import lgd "code.google.com/p/log4go"
@@ -14,17 +13,16 @@ const (
 	TYPE_X = 1
 )
 
-var functionAction map[string]func(url.Values) []byte
+var functionAction map[string]func(Req, *transaction) []byte
 var functionArgv map[string]int
 var functionType map[string]int
 
-func mapAction(keyword url.Values, privilege int, replication bool) []byte {
+func mapAction(req Req, privilege int, replication bool, tranObj *transaction) []byte {
 	rsp := Rsp{
 		C: ERR_CMD_MISS,
 	}
-	key := keyword.Get(URL_CMD)
-	if function, ok := functionAction[key]; ok {
-		typ := functionType[key]
+	if function, ok := functionAction[req.C]; ok {
+		typ := functionType[req.C]
 		switch typ {
 		case TYPE_R:
 			if privilege < 4 || privilege > 7 {
@@ -41,19 +39,23 @@ func mapAction(keyword url.Values, privilege int, replication bool) []byte {
 				rsp.C = ERR_ACCESS_DENIED
 				return util.JsonOut(rsp)
 			}
+			if tranObj.isBegin() {
+				rsp.C = ERR_TRA_USER
+				return util.JsonOut(rsp)
+			}
 		}
-		if len(keyword) != functionArgv[key] {
-			lgd.Error("argv[%+v] is illegal", keyword)
+		if len(req.Key) == 0 && len(req.UserName) == 0 {
+			lgd.Error("argv[%+v] is illegal", req)
 			rsp.C = ERR_PARSE_MISS
 			return util.JsonOut(rsp)
 		}
-		return function(keyword)
+		return function(req, tranObj)
 	}
 
 	return util.JsonOut(rsp)
 }
 
-func registerCMD(key string, argvcount int, function func(url.Values) []byte, typ int) {
+func registerCMD(key string, argvcount int, function func(Req, *transaction) []byte, typ int) {
 	if _, ok := functionAction[key]; ok {
 		lgd.Error("duplicate key %s", key)
 		return
@@ -66,7 +68,7 @@ func registerCMD(key string, argvcount int, function func(url.Values) []byte, ty
 }
 
 func init() {
-	functionAction = make(map[string]func(url.Values) []byte)
+	functionAction = make(map[string]func(Req, *transaction) []byte)
 	functionArgv = make(map[string]int)
 	functionType = make(map[string]int)
 }

@@ -39,6 +39,7 @@ type xmlConfig struct {
 	PageSize              int            `xml:"pagesize"`
 	MaxOnlyUserConnection int            `xml:"maxonlyuserconnection"`
 	MaxUserConnection     int            `xml:"maxuserconnection"`
+	MaxTransactionTime    time.Duration  `xml:"maxtransactiontime"`
 }
 
 var GlobalConf xmlConfig

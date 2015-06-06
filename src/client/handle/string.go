@@ -2,7 +2,7 @@ package handle
 
 import (
 	"catchendb/src/util"
-	"net/url"
+	"strconv"
 )
 
 func HandleSet(data []byte) []byte {
@@ -10,11 +10,12 @@ func HandleSet(data []byte) []byte {
 	if len(argv) != 3 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_SET)
-	urlData.Add(URL_KEY, argv[1])
-	urlData.Add(URL_VALUE, argv[2])
-	return []byte(urlData.Encode())
+	req := Req{
+		C:     CMD_SET,
+		Key:   argv[1],
+		Value: argv[2],
+	}
+	return util.JsonOut(req)
 }
 
 func HandleGet(data []byte) []byte {
@@ -22,10 +23,11 @@ func HandleGet(data []byte) []byte {
 	if len(argv) != 2 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_GET)
-	urlData.Add(URL_KEY, argv[1])
-	return []byte(urlData.Encode())
+	req := Req{
+		C:   CMD_GET,
+		Key: argv[1],
+	}
+	return util.JsonOut(req)
 }
 
 func HandleDel(data []byte) []byte {
@@ -33,10 +35,11 @@ func HandleDel(data []byte) []byte {
 	if len(argv) != 2 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_DEL)
-	urlData.Add(URL_KEY, argv[1])
-	return []byte(urlData.Encode())
+	req := Req{
+		C:   CMD_DEL,
+		Key: argv[1],
+	}
+	return util.JsonOut(req)
 }
 
 func HandleSetEx(data []byte) []byte {
@@ -44,13 +47,22 @@ func HandleSetEx(data []byte) []byte {
 	if len(argv) != 5 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_SETEX)
-	urlData.Add(URL_KEY, argv[1])
-	urlData.Add(URL_VALUE, argv[2])
-	urlData.Add(URL_START, argv[3])
-	urlData.Add(URL_END, argv[4])
-	return []byte(urlData.Encode())
+	start, err := strconv.ParseInt(argv[3], 10, 64)
+	if err != nil {
+		return nil
+	}
+	end, err := strconv.ParseInt(argv[4], 10, 64)
+	if err != nil {
+		return nil
+	}
+	req := Req{
+		C:         CMD_SETEX,
+		Key:       argv[1],
+		Value:     argv[2],
+		StartTime: start,
+		EndTime:   end,
+	}
+	return util.JsonOut(req)
 }
 
 func HandleDelay(data []byte) []byte {
@@ -58,11 +70,17 @@ func HandleDelay(data []byte) []byte {
 	if len(argv) != 3 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_DELAY)
-	urlData.Add(URL_KEY, argv[1])
-	urlData.Add(URL_START, argv[2])
-	return []byte(urlData.Encode())
+	start, err := strconv.ParseInt(argv[2], 10, 64)
+	if err != nil {
+		return nil
+	}
+
+	req := Req{
+		C:         CMD_DELAY,
+		Key:       argv[1],
+		StartTime: start,
+	}
+	return util.JsonOut(req)
 }
 
 func HandleExpire(data []byte) []byte {
@@ -70,11 +88,17 @@ func HandleExpire(data []byte) []byte {
 	if len(argv) != 3 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_EXPIRE)
-	urlData.Add(URL_KEY, argv[1])
-	urlData.Add(URL_END, argv[2])
-	return []byte(urlData.Encode())
+	end, err := strconv.ParseInt(argv[2], 10, 64)
+	if err != nil {
+		return nil
+	}
+
+	req := Req{
+		C:       CMD_EXPIRE,
+		Key:     argv[1],
+		EndTime: end,
+	}
+	return util.JsonOut(req)
 }
 
 func HandleTTL(data []byte) []byte {
@@ -82,10 +106,11 @@ func HandleTTL(data []byte) []byte {
 	if len(argv) != 2 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_TTL)
-	urlData.Add(URL_KEY, argv[1])
-	return []byte(urlData.Encode())
+	req := Req{
+		C:   CMD_TTL,
+		Key: argv[1],
+	}
+	return util.JsonOut(req)
 }
 
 func HandleTTS(data []byte) []byte {
@@ -93,10 +118,11 @@ func HandleTTS(data []byte) []byte {
 	if len(argv) != 2 {
 		return nil
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_TTS)
-	urlData.Add(URL_KEY, argv[1])
-	return []byte(urlData.Encode())
+	req := Req{
+		C:   CMD_TTS,
+		Key: argv[1],
+	}
+	return util.JsonOut(req)
 }
 
 func init() {

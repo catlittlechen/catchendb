@@ -3,21 +3,21 @@ package logic
 import (
 	"catchendb/src/config"
 	"catchendb/src/node"
+	"catchendb/src/util"
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/url"
 	"sync"
 )
 
 import lgd "code.google.com/p/log4go"
 
 var (
-	replicationChannel map[string]*chan url.Values
+	replicationChannel map[string]*chan Req
 	channelMutex       *sync.Mutex
 )
 
-func addReplicationChannel(name string, chans *chan url.Values) {
+func addReplicationChannel(name string, chans *chan Req) {
 	channelMutex.Lock()
 	replicationChannel[name] = chans
 	channelMutex.Unlock()
@@ -29,23 +29,18 @@ func deleteReplicationChannel(name string) {
 	channelMutex.Unlock()
 }
 
-func replicationData(data url.Values) {
+func replicationData(req Req) {
 	channelMutex.Lock()
 	for _, chans := range replicationChannel {
 		go func() {
-			(*chans) <- data
+			(*chans) <- req
 		}()
 	}
 	channelMutex.Unlock()
 }
 
-func Replication(name string, conn *net.TCPConn) {
-	replicationMaster(name, conn)
-	return
-}
-
 func replicationMaster(name string, conn *net.TCPConn) {
-	channelReplication := make(chan url.Values, 1000)
+	channelReplication := make(chan Req, 1000)
 	addReplicationChannel(name, &channelReplication)
 	defer func() {
 		deleteReplicationChannel(name)
@@ -53,7 +48,7 @@ func replicationMaster(name string, conn *net.TCPConn) {
 	}()
 	channel := make(chan node.Data, 1000)
 	go node.OutPutData(channel)
-	urlData := url.Values{}
+	var req Req
 	var err error
 	var count int
 	var rsp Rsp
@@ -63,13 +58,14 @@ func replicationMaster(name string, conn *net.TCPConn) {
 		if len(d.Key) == 0 {
 			break
 		}
-		urlData = url.Values{}
-		urlData.Add(URL_CMD, CMD_SETEX)
-		urlData.Add(URL_KEY, d.Key)
-		urlData.Add(URL_VALUE, d.Value)
-		urlData.Add(URL_START, fmt.Sprintf("%d", d.StartTime))
-		urlData.Add(URL_END, fmt.Sprintf("%d", d.EndTime))
-		_, err = conn.Write([]byte(urlData.Encode()))
+		req = Req{
+			C:         CMD_SETEX,
+			Key:       d.Key,
+			Value:     d.Value,
+			StartTime: d.StartTime,
+			EndTime:   d.EndTime,
+		}
+		_, err = conn.Write(util.JsonOut(req))
 		if err != nil {
 			lgd.Error("Sync Error %s", err)
 			return
@@ -84,8 +80,8 @@ func replicationMaster(name string, conn *net.TCPConn) {
 		if err != nil {
 			lgd.Error("Sync Fatal Error %s", err)
 			return
-
 		}
+
 		if rsp.C != 0 {
 			lgd.Error("Sync Fatal Error %s", err)
 			return
@@ -93,8 +89,8 @@ func replicationMaster(name string, conn *net.TCPConn) {
 	}
 	close(channel)
 	for {
-		urlData := <-channelReplication
-		_, err = conn.Write([]byte(urlData.Encode()))
+		req = <-channelReplication
+		_, err = conn.Write(util.JsonOut(req))
 		if err != nil {
 			lgd.Error("Sync Error %s", err)
 			return
@@ -134,11 +130,12 @@ func replicationSlave() bool {
 		lgd.Error("Fatal Error %s", err)
 		return false
 	}
-	urlData := url.Values{}
-	urlData.Add(URL_CMD, CMD_AUT)
-	urlData.Add(URL_USER, config.GlobalConf.MasterSlave.UserName)
-	urlData.Add(URL_PASS, config.GlobalConf.MasterSlave.PassWord)
-	_, err = conn.Write([]byte(urlData.Encode()))
+	req := Req{
+		C:        CMD_AUT,
+		UserName: config.GlobalConf.MasterSlave.UserName,
+		PassWord: config.GlobalConf.MasterSlave.PassWord,
+	}
+	_, err = conn.Write(util.JsonOut(req))
 	if err != nil {
 		lgd.Error("Fatal Error %s", err)
 		return false
@@ -166,6 +163,7 @@ func replicationSlave() bool {
 
 func syncData(conn *net.TCPConn) {
 	var err error
+	var req Req
 	data := make([]byte, 10240)
 	count := 0
 	for {
@@ -174,12 +172,13 @@ func syncData(conn *net.TCPConn) {
 			lgd.Error("Fatal Error %s", err)
 			return
 		}
-		keyword, err := url.ParseQuery(string(data[:count]))
+		req = Req{}
+		err = json.Unmarshal(data[:count], &req)
 		if err != nil {
 			lgd.Error("Fatal Error %s", err)
 			return
 		}
-		_, err = conn.Write(mapAction(keyword, 2, true))
+		_, err = conn.Write(mapAction(req, 2, true, nil))
 		if err != nil {
 			lgd.Error("Sync Fatal Error %s", err)
 			return
@@ -188,6 +187,6 @@ func syncData(conn *net.TCPConn) {
 }
 
 func init() {
-	replicationChannel = make(map[string]*chan url.Values)
+	replicationChannel = make(map[string]*chan Req)
 	channelMutex = new(sync.Mutex)
 }

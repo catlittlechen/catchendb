@@ -23,7 +23,7 @@ type hashRoot struct {
 	rbNode []nodeRoot
 }
 
-func (hr *hashRoot) insertNode(key, value string, start, end int64) bool {
+func (hr *hashRoot) insertNode(key, value string, start, end int64, tranID int) bool {
 	index := hash(key, hr.size)
 	return hr.rbNode[index].insertNode(key, value, start, end)
 }
@@ -33,17 +33,17 @@ func (hr *hashRoot) searchNode(key string) (string, int64, int64) {
 	return hr.rbNode[index].searchNode(key)
 }
 
-func (hr *hashRoot) setStartTime(key string, start int64) bool {
+func (hr *hashRoot) setStartTime(key string, start int64, tranID int) bool {
 	index := hash(key, hr.size)
 	return hr.rbNode[index].setStartTime(key, start)
 }
 
-func (hr *hashRoot) setEndTime(key string, end int64) bool {
+func (hr *hashRoot) setEndTime(key string, end int64, tranID int) bool {
 	index := hash(key, hr.size)
 	return hr.rbNode[index].setEndTime(key, end)
 }
 
-func (hr *hashRoot) deleteNode(key string) bool {
+func (hr *hashRoot) deleteNode(key string, tranID int) bool {
 	index := hash(key, hr.size)
 	return hr.rbNode[index].deleteNode(key)
 }

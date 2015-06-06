@@ -7,8 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,6 +18,19 @@ type Rsp struct {
 	D string `json:"d"`
 }
 
+type Req struct {
+	C string `json:"c"`
+
+	UserName  string `json:"usr"`
+	PassWord  string `json:"pas"`
+	Privilege int    `json:"pri"`
+
+	Key       string `json:"key"`
+	Value     string `json:"val"`
+	StartTime int64  `json:"sta"`
+	EndTime   int64  `json:"end"`
+}
+
 var displayHelp = flag.Bool("help", false, "displayHelpMessage")
 var username = flag.String("u", "root", "username")
 var password = flag.String("p", "root", "password")
@@ -25,6 +38,10 @@ var host = flag.String("h", "127.0.0.1", "host")
 var port = flag.Int("P", 13570, "port")
 var capt = flag.Int("c", 13570, "capt")
 var onlyget = flag.Bool("o", false, "onlyget")
+var onlyset = flag.Bool("s", false, "onlyget")
+var gorout = flag.Int("g", 1, "goroutince")
+
+var wg sync.WaitGroup
 
 func Init() bool {
 	flag.Parse()
@@ -36,11 +53,12 @@ func Init() bool {
 	return true
 }
 
-func mainloop() {
+func mainloop(capts, begin int) {
+	defer wg.Done()
 	bp := ""
 	data := make([]byte, 10240)
 	data2 := make([]byte, 10240)
-	var urlData url.Values
+	var req Req
 	var count int
 	var err error
 
@@ -57,11 +75,12 @@ func mainloop() {
 		return
 	}
 
-	urlData = url.Values{}
-	urlData.Add(handle.URL_CMD, handle.CMD_AUT)
-	urlData.Add(handle.URL_USER, *username)
-	urlData.Add(handle.URL_PASS, *password)
-	_, err = conn.Write([]byte(urlData.Encode()))
+	req = Req{
+		C:        handle.CMD_AUT,
+		UserName: *username,
+		PassWord: *password,
+	}
+	_, err = conn.Write(util.JsonOut(req))
 	if err != nil {
 		fmt.Println("ccdb>Fatal Error " + err.Error() + "\n")
 		return
@@ -84,15 +103,14 @@ func mainloop() {
 		return
 	}
 
-	countap := 1
-	fmt.Println(time.Now().Unix())
+	countap := begin - 1
+	end := begin + capts
 	var code string
 	ok := false
 	var fun func([]byte) []byte
 	for {
 		countap += 1
-		if countap == *capt {
-			fmt.Println(time.Now().Unix())
+		if countap == end {
 			break
 		}
 		if !*onlyget {
@@ -134,41 +152,44 @@ func mainloop() {
 				fmt.Println(rsp.D + "\n")
 			}
 		}
-		bp = fmt.Sprintf("get %d", countap)
+		if !*onlyset {
+			bp = fmt.Sprintf("get %d", countap)
 
-		code = (strings.Split(bp, string(' ')))[0]
-		fun, ok = handle.GetHandle(code)
-		if !ok {
-			fmt.Printf("wrong command[%s]\n", code)
-			continue
-		}
-		data2 = fun([]byte(bp))
-		if data2 == nil {
-			fmt.Println("wrong argv\n")
-			continue
-		}
-		_, err = conn.Write(data2)
-		if err != nil {
-			fmt.Println("Fatal Error " + err.Error() + "\n")
-			return
-		}
-		count, err = conn.Read(data)
-		if err != nil {
-			fmt.Println("Fatal Error " + err.Error() + "\n")
-			return
-		}
+			code = (strings.Split(bp, string(' ')))[0]
+			fun, ok = handle.GetHandle(code)
+			if !ok {
+				fmt.Printf("wrong command[%s]\n", code)
+				continue
+			}
+			data2 = fun([]byte(bp))
+			if data2 == nil {
+				fmt.Println("wrong argv\n")
+				continue
+			}
+			_, err = conn.Write(data2)
+			if err != nil {
+				fmt.Println("Fatal Error " + err.Error() + "\n")
+				return
+			}
+			count, err = conn.Read(data)
+			if err != nil {
+				fmt.Println("Fatal Error " + err.Error() + "\n")
+				return
+			}
 
-		err = json.Unmarshal(data[:count], &rsp)
-		if err != nil {
-			fmt.Println("Fatal Data " + string(data[:count]) + "Error " + err.Error() + "\n")
-			return
-		}
+			err = json.Unmarshal(data[:count], &rsp)
+			if err != nil {
+				fmt.Println("Fatal Data " + string(data[:count]) + "Error " + err.Error() + "\n")
+				return
+			}
 
-		if rsp.C != 0 {
-			fmt.Printf("ERROR %d \n", rsp.C)
-			continue
-		} else if rsp.D != fmt.Sprintf("%d", countap) {
-			fmt.Printf("%d\n", countap)
+			if rsp.C != 0 {
+				fmt.Printf("ERROR %d \n", rsp.C)
+				continue
+			} else if rsp.D != fmt.Sprintf("%d", countap) {
+				fmt.Printf("%d\n", countap)
+			}
+
 		}
 	}
 }
@@ -178,6 +199,13 @@ func main() {
 		time.Sleep(1e9)
 		return
 	}
-	mainloop()
+	fmt.Println(time.Now().UnixNano())
+	capts := *capt
+	for i := 0; i < *gorout; i++ {
+		wg.Add(1)
+		go mainloop(capts, capts*i)
+	}
+	wg.Wait()
+	fmt.Println(time.Now().UnixNano())
 	return
 }
