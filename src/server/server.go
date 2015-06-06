@@ -2,6 +2,7 @@ package main
 
 import (
 	"catchendb/src/config"
+	"catchendb/src/data"
 	"catchendb/src/logic"
 	"catchendb/src/node"
 	"catchendb/src/util"
@@ -107,7 +108,7 @@ func Init() bool {
 	lgd.LoadConfiguration(config.GlobalConf.Log)
 	os.Chmod(config.GlobalConf.Log, 0666)
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	return node.Init() && logic.LoadData() && true
+	return node.Init() && logic.LoadData() && data.Init() && true
 }
 
 func main() {

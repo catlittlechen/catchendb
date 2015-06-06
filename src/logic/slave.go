@@ -2,6 +2,7 @@ package logic
 
 import (
 	"catchendb/src/config"
+	"catchendb/src/data"
 	"catchendb/src/node"
 	"catchendb/src/util"
 	"encoding/json"
@@ -46,7 +47,7 @@ func replicationMaster(name string, conn *net.TCPConn) {
 		deleteReplicationChannel(name)
 		close(channelReplication)
 	}()
-	channel := make(chan node.Data, 1000)
+	channel := make(chan data.Data, 1000)
 	go node.OutPutData(channel)
 	var req Req
 	var err error

@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"catchendb/src/data"
 	"catchendb/src/node"
 	"sync"
 )
@@ -27,20 +28,20 @@ func getTransactionId() (id int) {
 type transaction struct {
 	ID         int
 	ChangeLog  []transactionLog
-	ChangeData map[string]*node.Data
+	ChangeData map[string]*data.Data
 }
 
 func (t *transaction) init() {
 	t.ID = getTransactionId()
 	t.ChangeLog = []transactionLog{}
-	t.ChangeData = make(map[string]*node.Data)
+	t.ChangeData = make(map[string]*data.Data)
 }
 
 func (t *transaction) getID() int {
 	return t.ID
 }
 
-func (t *transaction) push(typ int, newData *node.Data) {
+func (t *transaction) push(typ int, newData *data.Data) {
 	tl := transactionLog{
 		typ:     typ,
 		newData: newData,
@@ -49,7 +50,7 @@ func (t *transaction) push(typ int, newData *node.Data) {
 	t.ChangeData[newData.Key] = newData
 }
 
-func (t *transaction) getData(key string) *node.Data {
+func (t *transaction) getData(key string) *data.Data {
 	return t.ChangeData[key]
 }
 
@@ -104,7 +105,7 @@ func (t *transaction) rollback() (res int) {
 
 type transactionLog struct {
 	typ     int
-	newData *node.Data
+	newData *data.Data
 }
 
 func init() {

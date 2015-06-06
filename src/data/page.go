@@ -1,4 +1,4 @@
-package node
+package data
 
 import (
 	"unsafe"
@@ -15,8 +15,8 @@ const (
 	pageHeaderSize = int(unsafe.Offsetof(((*page)(nil)).ptr))
 )
 
-func (p *page) nodeData() (nd *nodeData) {
-	nd = (*nodeData)(unsafe.Pointer(&p.ptr))
+func (p *page) nodeData() (nd *NodeData) {
+	nd = (*NodeData)(unsafe.Pointer(&p.ptr))
 	nd.ptr = p
 	return
 }

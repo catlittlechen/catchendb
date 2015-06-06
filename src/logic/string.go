@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"catchendb/src/data"
 	"catchendb/src/node"
 	"catchendb/src/util"
 	"strconv"
@@ -27,7 +28,7 @@ func handleSet(req Req, tranObj *transaction) []byte {
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		_, start, end := node.Get(req.Key)
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = req.Key
 		d.Value = req.Value
 		d.StartTime = start
@@ -74,7 +75,7 @@ func handleDel(req Req, tranObj *transaction) []byte {
 		rsp.C = ERR_CMD_DEL
 	}
 	if tranObj != nil && tranObj.isBegin() {
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = key
 		tranObj.push(DELETE_TYPE, d)
 	} else {
@@ -100,7 +101,7 @@ func handleSetEx(req Req, tranObj *transaction) []byte {
 
 	if tranObj != nil && tranObj.isBegin() {
 		_, start, end := node.Get(key)
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = key
 		d.Value = value
 		d.StartTime = start
@@ -127,7 +128,7 @@ func handleDelay(req Req, tranObj *transaction) []byte {
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		value, _, end := node.Get(key)
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = key
 		d.Value = value
 		d.StartTime = req.StartTime
@@ -154,7 +155,7 @@ func handleExpire(req Req, tranObj *transaction) []byte {
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		value, start, _ := node.Get(key)
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = key
 		d.Value = value
 		d.StartTime = start

@@ -1,5 +1,9 @@
 package node
 
+import (
+	"catchendb/src/data"
+)
+
 var (
 	iRoot iNodeRoot
 )
@@ -21,5 +25,5 @@ type iNodeRoot interface {
 
 	init() bool
 
-	outputData(chan Data)
+	outputData(chan data.Data)
 }

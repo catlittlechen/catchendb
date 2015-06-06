@@ -1,4 +1,4 @@
-package node
+package data
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ type Data struct {
 	EndTime   int64  `json:"end"`
 }
 
-func (d *Data) decode(line []byte) bool {
+func (d *Data) Decode(line []byte) bool {
 	err := json.Unmarshal(line, d)
 	if err != nil {
 		return false
@@ -21,7 +21,7 @@ func (d *Data) decode(line []byte) bool {
 	return true
 }
 
-func (d *Data) encode() (line []byte, ok bool) {
+func (d *Data) Encode() (line []byte, ok bool) {
 	var err error
 	line, err = json.Marshal(d)
 	if err != nil {
@@ -32,10 +32,10 @@ func (d *Data) encode() (line []byte, ok bool) {
 }
 
 const (
-	nodeDataSize = int(unsafe.Sizeof(nodeData{}))
+	nodeDataSize = int(unsafe.Sizeof(NodeData{}))
 )
 
-type nodeData struct {
+type NodeData struct {
 	ptr       *page
 	startTime int64
 	endTime   int64
@@ -43,50 +43,50 @@ type nodeData struct {
 	valueSize int
 }
 
-func createData(key, value string, start, end int64) (data *nodeData) {
+func CreateNodeData(key, value string, start, end int64) (data *NodeData) {
 	size := pageHeaderSize + nodeDataSize + len(key) + len(value)
 	page := globalPageList.allocate(int(size/pageSize) + 1)
 	if page != nil {
 		data = page.nodeData()
-		data.init()
-		if !data.setStartTime(start) || !data.setEndTime(end) {
-			data.free()
+		data.Init()
+		if !data.SetStartTime(start) || !data.SetEndTime(end) {
+			data.Free()
 			return nil
 		}
-		data.setKeyValue(key, value)
+		data.SetKeyValue(key, value)
 		return
 	}
 	return nil
 }
 
-func (nd *nodeData) init() {
+func (nd *NodeData) Init() {
 }
 
-func (nd *nodeData) free() {
+func (nd *NodeData) Free() {
 	globalPageList.free(nd.ptr)
 }
 
-func (nd *nodeData) getStartTime() int64 {
+func (nd *NodeData) GetStartTime() int64 {
 	return nd.startTime
 }
 
-func (nd *nodeData) setStartTime(start int64) bool {
+func (nd *NodeData) SetStartTime(start int64) bool {
 	nd.startTime = start
 	return true
 }
 
-func (nd *nodeData) isStart() bool {
+func (nd *NodeData) IsStart() bool {
 	if nd.startTime < time.Now().Unix() {
 		return true
 	}
 	return false
 }
 
-func (nd *nodeData) getEndTime() int64 {
+func (nd *NodeData) GetEndTime() int64 {
 	return nd.endTime
 }
 
-func (nd *nodeData) setEndTime(end int64) bool {
+func (nd *NodeData) SetEndTime(end int64) bool {
 	if end != 0 && time.Now().Unix() > end {
 		return false
 	}
@@ -94,28 +94,28 @@ func (nd *nodeData) setEndTime(end int64) bool {
 	return true
 }
 
-func (nd *nodeData) isEnd() bool {
+func (nd *NodeData) IsEnd() bool {
 	if nd.endTime != 0 && nd.endTime < time.Now().Unix() {
 		return true
 	}
 	return false
 }
 
-func (nd *nodeData) key() (key []byte) {
+func (nd *NodeData) Key() (key []byte) {
 	key = make([]byte, nd.keySize)
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(nd))
 	copy(key, buf[nodeDataSize:nodeDataSize+nd.keySize])
 	return
 }
 
-func (nd *nodeData) value() (value []byte) {
+func (nd *NodeData) Value() (value []byte) {
 	value = make([]byte, nd.keySize)
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(nd))
 	copy(value, buf[nodeDataSize+nd.keySize:nodeDataSize+nd.keySize+nd.valueSize])
 	return
 }
 
-func (nd *nodeData) setKeyValue(key, value string) bool {
+func (nd *NodeData) SetKeyValue(key, value string) bool {
 	nd.keySize = len(key)
 	nd.valueSize = len(value)
 	buf := (*[maxAlloacSize]byte)(unsafe.Pointer(nd))
@@ -124,8 +124,8 @@ func (nd *nodeData) setKeyValue(key, value string) bool {
 	return true
 }
 
-func (nd *nodeData) setKey(key string) bool {
-	value := nd.value()
+func (nd *NodeData) SetKey(key string) bool {
+	value := nd.Value()
 	nd.keySize = len(key)
 	size := pageHeaderSize + nodeDataSize + nd.keySize + nd.valueSize
 	if size > int(nd.ptr.count)*pageSize {
@@ -137,7 +137,7 @@ func (nd *nodeData) setKey(key string) bool {
 	return true
 }
 
-func (nd *nodeData) setValue(value string) bool {
+func (nd *NodeData) SetValue(value string) bool {
 	size := pageHeaderSize + nodeDataSize + nd.keySize + len(value)
 	if size < int(nd.ptr.count)*pageSize {
 		buf := (*[maxAlloacSize]byte)(unsafe.Pointer(nd))

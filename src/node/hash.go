@@ -3,6 +3,7 @@ package node
 import (
 	"bytes"
 	"catchendb/src/config"
+	"catchendb/src/data"
 	"hash/fnv"
 )
 
@@ -69,13 +70,13 @@ func (hr *hashRoot) output(channel chan []byte, sign []byte) {
 	return
 }
 
-func (hr *hashRoot) outputData(channel chan Data) {
-	hrchan := make(chan Data, 1000)
+func (hr *hashRoot) outputData(channel chan data.Data) {
+	hrchan := make(chan data.Data, 1000)
 	for _, rbtree := range hr.rbNode {
 		go rbtree.outputData(hrchan)
 	}
 	index := 0
-	d := Data{}
+	d := data.Data{}
 	for {
 		d = <-hrchan
 		if len(d.Key) == 0 {
@@ -86,13 +87,13 @@ func (hr *hashRoot) outputData(channel chan Data) {
 		}
 		channel <- d
 	}
-	channel <- Data{}
+	channel <- data.Data{}
 	return
 }
 
 func (hr *hashRoot) input(line []byte) bool {
-	d := Data{}
-	if !d.decode(line) {
+	d := data.Data{}
+	if !d.Decode(line) {
 		return false
 	}
 	index := hash(d.Key, hr.size)
