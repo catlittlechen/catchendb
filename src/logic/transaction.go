@@ -11,14 +11,14 @@ var (
 )
 
 const (
-	INSERT_TYPE = 1
-	DELETE_TYPE = 2
-	UPDATE_TYPE = 3
+	InsertType = 1
+	DeleteType = 2
+	UpdateType = 3
 )
 
-func getTransactionId() (id int) {
+func getTransactionID() (id int) {
 	transactionMutex.Lock()
-	transactionID += 1
+	transactionID++
 	id = transactionID
 	transactionMutex.Unlock()
 	return
@@ -31,7 +31,7 @@ type transaction struct {
 }
 
 func (t *transaction) init() {
-	t.ID = getTransactionId()
+	t.ID = getTransactionID()
 	t.ChangeLog = []transactionLog{}
 	t.ChangeData = make(map[string]*node.Data)
 }
@@ -69,16 +69,16 @@ func (t *transaction) commit() (res int) {
 	for _, tl := range t.ChangeLog {
 		req = Req{}
 		switch tl.typ {
-		case INSERT_TYPE, UPDATE_TYPE:
+		case InsertType, UpdateType:
 			node.Put(tl.newData.Key, tl.newData.Value, tl.newData.StartTime, tl.newData.EndTime, t.ID)
-			req.C = CMD_SETEX
+			req.C = CMDSETEX
 			req.Key = tl.newData.Key
 			req.Value = tl.newData.Value
 			req.StartTime = tl.newData.StartTime
 			req.EndTime = tl.newData.EndTime
-		case DELETE_TYPE:
+		case DeleteType:
 			node.Del(tl.newData.Key, t.ID)
-			req.C = CMD_DEL
+			req.C = CMDDEL
 			req.Key = tl.newData.Key
 		}
 
@@ -92,9 +92,9 @@ func (t *transaction) rollback() (res int) {
 	t.ID = -2
 	for _, tl := range t.ChangeLog {
 		switch tl.typ {
-		case INSERT_TYPE, UPDATE_TYPE:
+		case InsertType, UpdateType:
 			node.Put(tl.newData.Key, "", 0, 0, t.ID)
-		case DELETE_TYPE:
+		case DeleteType:
 			node.Del(tl.newData.Key, t.ID)
 		}
 	}

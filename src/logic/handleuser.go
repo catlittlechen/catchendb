@@ -8,7 +8,7 @@ import (
 //import lgd "code.google.com/p/log4go"
 
 func handleUserAut(req Req, tranObj *transaction) (ok bool, username string) {
-	if req.C != CMD_AUT {
+	if req.C != CMDAUT {
 		return
 	}
 	ok = user.VerifyPassword(req.UserName, req.PassWord)
@@ -19,38 +19,38 @@ func handleUserAut(req Req, tranObj *transaction) (ok bool, username string) {
 func handleUserAdd(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	if !user.AddUser(req.UserName, req.PassWord, req.Privilege) {
-		rsp.C = ERR_USER_DUPLICATE
+		rsp.C = ERRUSERDUPLICATE
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleUserDelete(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	if !user.DeleteUser(req.UserName) {
-		rsp.C = ERR_USER_NOT_EXIST
+		rsp.C = ERRUSERNOTEXIST
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleUserPass(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	if !user.MotifyUserInfo(req.UserName, req.PassWord, -1) {
-		rsp.C = ERR_USER_NOT_EXIST
+		rsp.C = ERRUSERNOTEXIST
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleUserPriv(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	if !user.MotifyUserInfo(req.UserName, "", req.Privilege) {
-		rsp.C = ERR_USER_PRIVILEGE
+		rsp.C = ERRUSERPRIVILEGE
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func initUser() {
-	registerCMD(CMD_UADD, 4, handleUserAdd, TYPE_X)
-	registerCMD(CMD_UDEL, 2, handleUserDelete, TYPE_X)
-	registerCMD(CMD_UPAS, 3, handleUserPass, TYPE_X)
-	registerCMD(CMD_UPRI, 3, handleUserPriv, TYPE_X)
+	registerCMD(CMDUADD, 4, handleUserAdd, TypeX)
+	registerCMD(CMDUDEL, 2, handleUserDelete, TypeX)
+	registerCMD(CMDUPAS, 3, handleUserPass, TypeX)
+	registerCMD(CMDUPRI, 3, handleUserPriv, TypeX)
 }

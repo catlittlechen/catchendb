@@ -109,7 +109,7 @@ func mainloop(capts, begin int) {
 	ok := false
 	var fun func([]byte) []byte
 	for {
-		countap += 1
+		countap++
 		if countap == end {
 			break
 		}

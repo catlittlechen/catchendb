@@ -11,11 +11,11 @@ func HandleSet(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:     CMD_SET,
+		C:     CMDSET,
 		Key:   argv[1],
 		Value: argv[2],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleGet(data []byte) []byte {
@@ -24,10 +24,10 @@ func HandleGet(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:   CMD_GET,
+		C:   CMDGET,
 		Key: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleDel(data []byte) []byte {
@@ -36,10 +36,10 @@ func HandleDel(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:   CMD_DEL,
+		C:   CMDDEL,
 		Key: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleSetEx(data []byte) []byte {
@@ -56,13 +56,13 @@ func HandleSetEx(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:         CMD_SETEX,
+		C:         CMDSETEX,
 		Key:       argv[1],
 		Value:     argv[2],
 		StartTime: start,
 		EndTime:   end,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleDelay(data []byte) []byte {
@@ -76,11 +76,11 @@ func HandleDelay(data []byte) []byte {
 	}
 
 	req := Req{
-		C:         CMD_DELAY,
+		C:         CMDDELAY,
 		Key:       argv[1],
 		StartTime: start,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleExpire(data []byte) []byte {
@@ -94,11 +94,11 @@ func HandleExpire(data []byte) []byte {
 	}
 
 	req := Req{
-		C:       CMD_EXPIRE,
+		C:       CMDEXPIRE,
 		Key:     argv[1],
 		EndTime: end,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleTTL(data []byte) []byte {
@@ -107,10 +107,10 @@ func HandleTTL(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:   CMD_TTL,
+		C:   CMDTTL,
 		Key: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleTTS(data []byte) []byte {
@@ -119,19 +119,19 @@ func HandleTTS(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:   CMD_TTS,
+		C:   CMDTTS,
 		Key: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func init() {
-	registerHandle(CMD_SET, HandleSet)
-	registerHandle(CMD_GET, HandleGet)
-	registerHandle(CMD_DEL, HandleDel)
-	registerHandle(CMD_SETEX, HandleSetEx)
-	registerHandle(CMD_DELAY, HandleDelay)
-	registerHandle(CMD_EXPIRE, HandleExpire)
-	registerHandle(CMD_TTL, HandleTTL)
-	registerHandle(CMD_TTS, HandleTTS)
+	registerHandle(CMDSET, HandleSet)
+	registerHandle(CMDGET, HandleGet)
+	registerHandle(CMDDEL, HandleDel)
+	registerHandle(CMDSETEX, HandleSetEx)
+	registerHandle(CMDDELAY, HandleDelay)
+	registerHandle(CMDEXPIRE, HandleExpire)
+	registerHandle(CMDTTL, HandleTTL)
+	registerHandle(CMDTTS, HandleTTS)
 }

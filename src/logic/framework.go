@@ -8,9 +8,9 @@ import (
 import lgd "code.google.com/p/log4go"
 
 const (
-	TYPE_R = 4
-	TYPE_W = 2
-	TYPE_X = 1
+	TypeR = 4
+	TypeW = 2
+	TypeX = 1
 )
 
 var functionAction map[string]func(Req, *transaction) []byte
@@ -19,52 +19,52 @@ var functionType map[string]int
 
 func mapAction(req Req, privilege int, replication bool, tranObj *transaction) []byte {
 	rsp := Rsp{
-		C: ERR_CMD_MISS,
+		C: ERRCMDMISS,
 	}
 	if function, ok := functionAction[req.C]; ok {
 		typ := functionType[req.C]
 		switch typ {
-		case TYPE_R:
+		case TypeR:
 			if privilege < 4 || privilege > 7 {
-				rsp.C = ERR_ACCESS_DENIED
-				return util.JsonOut(rsp)
+				rsp.C = ERRACCESSDENIED
+				return util.JSONOut(rsp)
 			}
-		case TYPE_W:
+		case TypeW:
 			if (privilege/2 != 1 && privilege/2 != 3) || (!config.GlobalConf.MasterSlave.IsMaster && !replication) {
-				rsp.C = ERR_ACCESS_DENIED
-				return util.JsonOut(rsp)
+				rsp.C = ERRACCESSDENIED
+				return util.JSONOut(rsp)
 			}
-		case TYPE_X:
+		case TypeX:
 			if privilege != 1 && privilege != 3 && privilege != 7 {
-				rsp.C = ERR_ACCESS_DENIED
-				return util.JsonOut(rsp)
+				rsp.C = ERRACCESSDENIED
+				return util.JSONOut(rsp)
 			}
 			if tranObj.isBegin() {
-				rsp.C = ERR_TRA_USER
-				return util.JsonOut(rsp)
+				rsp.C = ERRTRAUSER
+				return util.JSONOut(rsp)
 			}
 		}
 		if len(req.Key) == 0 && len(req.UserName) == 0 {
 			lgd.Error("argv[%+v] is illegal", req)
-			rsp.C = ERR_PARSE_MISS
-			return util.JsonOut(rsp)
+			rsp.C = ERRPARSEMISS
+			return util.JSONOut(rsp)
 		}
 		return function(req, tranObj)
 	}
 
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func registerCMD(key string, argvcount int, function func(Req, *transaction) []byte, typ int) {
 	if _, ok := functionAction[key]; ok {
 		lgd.Error("duplicate key %s", key)
-		return
 	} else {
 		lgd.Info("reister cmd %s", key)
 		functionAction[key] = function
 		functionArgv[key] = argvcount
 		functionType[key] = typ
 	}
+	return
 }
 
 func init() {

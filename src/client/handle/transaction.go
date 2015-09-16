@@ -11,9 +11,9 @@ func HandleBegin(data []byte) []byte {
 	}
 
 	req := Req{
-		C: CMD_BEGIN,
+		C: CMDBEGIN,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleRollback(data []byte) []byte {
@@ -22,9 +22,9 @@ func HandleRollback(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C: CMD_ROLLBACK,
+		C: CMDROLLBACK,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleCommit(data []byte) []byte {
@@ -33,13 +33,13 @@ func HandleCommit(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C: CMD_COMMIT,
+		C: CMDCOMMIT,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func init() {
-	registerHandle(CMD_BEGIN, HandleBegin)
-	registerHandle(CMD_ROLLBACK, HandleRollback)
-	registerHandle(CMD_COMMIT, HandleCommit)
+	registerHandle(CMDBEGIN, HandleBegin)
+	registerHandle(CMDROLLBACK, HandleRollback)
+	registerHandle(CMDCOMMIT, HandleCommit)
 }

@@ -59,13 +59,13 @@ func replicationMaster(name string, conn *net.TCPConn) {
 			break
 		}
 		req = Req{
-			C:         CMD_SETEX,
+			C:         CMDSETEX,
 			Key:       d.Key,
 			Value:     d.Value,
 			StartTime: d.StartTime,
 			EndTime:   d.EndTime,
 		}
-		_, err = conn.Write(util.JsonOut(req))
+		_, err = conn.Write(util.JSONOut(req))
 		if err != nil {
 			lgd.Error("Sync Error %s", err)
 			return
@@ -90,7 +90,7 @@ func replicationMaster(name string, conn *net.TCPConn) {
 	close(channel)
 	for {
 		req = <-channelReplication
-		_, err = conn.Write(util.JsonOut(req))
+		_, err = conn.Write(util.JSONOut(req))
 		if err != nil {
 			lgd.Error("Sync Error %s", err)
 			return
@@ -131,11 +131,11 @@ func replicationSlave() bool {
 		return false
 	}
 	req := Req{
-		C:        CMD_AUT,
+		C:        CMDAUT,
 		UserName: config.GlobalConf.MasterSlave.UserName,
 		PassWord: config.GlobalConf.MasterSlave.PassWord,
 	}
-	_, err = conn.Write(util.JsonOut(req))
+	_, err = conn.Write(util.JSONOut(req))
 	if err != nil {
 		lgd.Error("Fatal Error %s", err)
 		return false

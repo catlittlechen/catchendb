@@ -23,7 +23,7 @@ func handleSet(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Put(req.Key, req.Value, 0, 0, tid) {
 		lgd.Error("set fail! key[%s] value[%s]", req.Key, req.Value)
-		rsp.C = ERR_CMD_SET
+		rsp.C = ERRCMDSET
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		_, start, end := node.Get(req.Key)
@@ -32,11 +32,11 @@ func handleSet(req Req, tranObj *transaction) []byte {
 		d.Value = req.Value
 		d.StartTime = start
 		d.EndTime = end
-		tranObj.push(INSERT_TYPE, d)
+		tranObj.push(InsertType, d)
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleGet(req Req, tranObj *transaction) []byte {
@@ -50,14 +50,14 @@ func handleGet(req Req, tranObj *transaction) []byte {
 			if nowTime > data.StartTime {
 				rsp.D = data.Value
 			}
-			return util.JsonOut(rsp)
+			return util.JSONOut(rsp)
 		}
 	}
 	value, startTime, _ := node.Get(key)
 	if nowTime > startTime {
 		rsp.D = value
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleDel(req Req, tranObj *transaction) []byte {
@@ -71,16 +71,16 @@ func handleDel(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Del(key, tid) {
 		lgd.Error("del fail! key[%s]", key)
-		rsp.C = ERR_CMD_DEL
+		rsp.C = ERRCMDDEL
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		d := new(node.Data)
 		d.Key = key
-		tranObj.push(DELETE_TYPE, d)
+		tranObj.push(DeleteType, d)
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleSetEx(req Req, tranObj *transaction) []byte {
@@ -95,7 +95,7 @@ func handleSetEx(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Put(key, value, req.StartTime, req.EndTime, tid) {
 		lgd.Error("set fail! key[%s] value[%s]", key, value)
-		rsp.C = ERR_CMD_SET
+		rsp.C = ERRCMDSET
 	}
 
 	if tranObj != nil && tranObj.isBegin() {
@@ -105,11 +105,11 @@ func handleSetEx(req Req, tranObj *transaction) []byte {
 		d.Value = value
 		d.StartTime = start
 		d.EndTime = end
-		tranObj.push(INSERT_TYPE, d)
+		tranObj.push(InsertType, d)
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleDelay(req Req, tranObj *transaction) []byte {
@@ -123,7 +123,7 @@ func handleDelay(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Set(key, req.StartTime, 0, tid) {
 		lgd.Error("delay fail! key[%s] startTime[%d]", key, req.StartTime)
-		rsp.C = ERR_CMD_DELAY
+		rsp.C = ERRCMDDELAY
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		value, _, end := node.Get(key)
@@ -132,11 +132,11 @@ func handleDelay(req Req, tranObj *transaction) []byte {
 		d.Value = value
 		d.StartTime = req.StartTime
 		d.EndTime = end
-		tranObj.push(UPDATE_TYPE, d)
+		tranObj.push(UpdateType, d)
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleExpire(req Req, tranObj *transaction) []byte {
@@ -150,7 +150,7 @@ func handleExpire(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Set(key, 0, req.EndTime, tid) {
 		lgd.Error("delay fail! key[%s] endTime[%d]", key, req.EndTime)
-		rsp.C = ERR_CMD_EXPIRE
+		rsp.C = ERRCMDEXPIRE
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		value, start, _ := node.Get(key)
@@ -159,11 +159,11 @@ func handleExpire(req Req, tranObj *transaction) []byte {
 		d.Value = value
 		d.StartTime = start
 		d.EndTime = req.EndTime
-		tranObj.push(UPDATE_TYPE, d)
+		tranObj.push(UpdateType, d)
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleTTL(req Req, tranObj *transaction) []byte {
@@ -179,7 +179,7 @@ func handleTTL(req Req, tranObj *transaction) []byte {
 			} else {
 				rsp.D = "-1"
 			}
-			return util.JsonOut(rsp)
+			return util.JSONOut(rsp)
 		}
 	}
 	_, _, endTime := node.Get(key)
@@ -188,7 +188,7 @@ func handleTTL(req Req, tranObj *transaction) []byte {
 	} else {
 		rsp.D = strconv.Itoa(int(endTime - nowTime))
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleTTS(req Req, tranObj *transaction) []byte {
@@ -204,7 +204,7 @@ func handleTTS(req Req, tranObj *transaction) []byte {
 			} else {
 				rsp.D = "-1"
 			}
-			return util.JsonOut(rsp)
+			return util.JSONOut(rsp)
 		}
 	}
 	_, startTime, _ := node.Get(key)
@@ -213,17 +213,17 @@ func handleTTS(req Req, tranObj *transaction) []byte {
 	} else {
 		rsp.D = strconv.Itoa(int(startTime - nowTime))
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 
 }
 
 func initString() {
-	registerCMD(CMD_SET, 3, handleSet, TYPE_W)
-	registerCMD(CMD_GET, 2, handleGet, TYPE_R)
-	registerCMD(CMD_DEL, 2, handleDel, TYPE_W)
-	registerCMD(CMD_SETEX, 5, handleSetEx, TYPE_W)
-	registerCMD(CMD_DELAY, 3, handleDelay, TYPE_W)
-	registerCMD(CMD_EXPIRE, 3, handleExpire, TYPE_W)
-	registerCMD(CMD_TTL, 2, handleTTL, TYPE_R)
-	registerCMD(CMD_TTS, 2, handleTTS, TYPE_R)
+	registerCMD(CMDSET, 3, handleSet, TypeW)
+	registerCMD(CMDGET, 2, handleGet, TypeR)
+	registerCMD(CMDDEL, 2, handleDel, TypeW)
+	registerCMD(CMDSETEX, 5, handleSetEx, TypeW)
+	registerCMD(CMDDELAY, 3, handleDelay, TypeW)
+	registerCMD(CMDEXPIRE, 3, handleExpire, TypeW)
+	registerCMD(CMDTTL, 2, handleTTL, TypeR)
+	registerCMD(CMDTTS, 2, handleTTS, TypeR)
 }

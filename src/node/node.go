@@ -9,9 +9,9 @@ import (
 import lgd "code.google.com/p/log4go"
 
 const (
-	NODE_KEY_SMALL = -1
-	NODE_KEY_EQUAL = 0
-	NODE_KEY_LARGE = 1
+	NodeKeySmall = -1
+	NodeKeyEqual = 0
+	NodeKeyLarge = 1
 )
 
 var (
@@ -134,16 +134,15 @@ func (nr *nodeRoot) search(key string) (node *nodePageElem) {
 
 	for node != nil {
 		switch node.compareKey(key) {
-		case NODE_KEY_EQUAL:
+		case NodeKeyEqual:
 			if node.isEnd() {
 				nr.delet(node)
-				return nil
-			} else {
-				return node
+				node = nil
 			}
-		case NODE_KEY_SMALL:
+			return node
+		case NodeKeySmall:
 			node = node.rChild
-		case NODE_KEY_LARGE:
+		case NodeKeyLarge:
 			node = node.lChild
 		}
 	}
@@ -313,16 +312,10 @@ func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool
 	node := nr.search(key)
 	if node != nil {
 		if node.setValue(value) {
-			if !node.setTime(startTime, endTime) {
-				return false
-			}
-			return true
+			return node.setTime(startTime, endTime)
 		}
 		nodeTmp := nr.createNode(key, value, startTime, endTime, node.parent, node.lChild, node.rChild)
-		if node == nil {
-			lgd.Error("reset value fail!")
-			return false
-		} else {
+		if node != nil {
 			node.lChild.parent = nodeTmp
 			node.rChild.parent = nodeTmp
 			if node.parent.lChild == node {
@@ -334,16 +327,17 @@ func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool
 				nodeTmp.setRed()
 			}
 			node.free()
+		} else {
+			lgd.Error("reset value fail!")
+			return false
 		}
 	}
 	if node = nr.createNode(key, value, startTime, endTime, nil, nil, nil); node != nil {
 		nr.insert(node)
-		return true
 	} else {
 		lgd.Error("createNode fail!")
-		return false
 	}
-	return false
+	return node != nil
 }
 
 func (nr *nodeRoot) deleteFixTree(node, parent *nodePageElem) {
@@ -557,11 +551,11 @@ func (n *nodePageElem) compare(node *nodePageElem) bool {
 func (n *nodePageElem) compareKey(key string) int {
 	ok := bytes.Compare(n.key(), []byte(key))
 	if ok < 0 {
-		return NODE_KEY_SMALL
+		return NodeKeySmall
 	} else if ok > 0 {
-		return NODE_KEY_LARGE
+		return NodeKeyLarge
 	}
-	return NODE_KEY_EQUAL
+	return NodeKeyEqual
 }
 
 func (n *nodePageElem) key() (key []byte) {

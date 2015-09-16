@@ -27,7 +27,9 @@ func (pn *pageNode) allocate(n int) *page {
 
 	freenode := pn.freelist
 	for freenode != nil {
-		if freenode.rBound-freenode.lBound > pid(n) {
+		if freenode.rBound-freenode.lBound <= pid(n) {
+			freenode = freenode.next
+		} else {
 			id := freenode.lBound
 			freenode.lBound += pid(n)
 			if freenode.lBound == freenode.rBound {
@@ -38,8 +40,6 @@ func (pn *pageNode) allocate(n int) *page {
 			p.count = uint16(n)
 			pn.freecount -= n
 			return p
-		} else {
-			freenode = freenode.next
 		}
 	}
 	return nil
@@ -56,11 +56,10 @@ func (pn *pageNode) free(p *page) {
 				if freenode.pre != nil && freenode.pre.rBound == id {
 					freenode.pre.rBound = freenode.rBound
 					freenode.pre.next = freenode.next
-					return
 				} else {
 					freenode.lBound = id
-					return
 				}
+				return
 			} else if freenode.lBound > id+count {
 				if freenode.pre != nil {
 					if freenode.pre.rBound == id {
@@ -110,12 +109,12 @@ func (pn *pageNode) free(p *page) {
 func (pn *pageNode) mmap(count uint64) bool {
 	newPageListSize := mmapSize(pageListSize)
 	pb, err := mmap(newPageListSize)
-	if err != nil {
-		lgd.Error("mmap error %s, pageListSize %d", err, newPageListSize)
-		return false
-	} else {
+	if err == nil {
 		pn.pagebyte = (*[mmapBranch]byte)(unsafe.Pointer(&pb[0]))
 		pageListSize = newPageListSize
+	} else {
+		lgd.Error("mmap error %s, pageListSize %d", err, newPageListSize)
+		return false
 	}
 	pn.count = uint64(newPageListSize) / uint64(pageSize)
 	pn.freelist = new(freeNode)
@@ -139,10 +138,10 @@ func (pl *pageList) allocate(n int) *page {
 	node := pl.head
 	for node != nil {
 		p := node.allocate(n)
-		if p != nil {
-			return p
-		} else {
+		if p == nil {
 			count += node.count
+		} else {
+			return p
 		}
 		node = node.next
 	}

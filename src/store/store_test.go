@@ -13,11 +13,11 @@ func testfunc(obj []byte, t *testing.T) {
 	buf := encode(obj)
 	t.Log(buf)
 	obj2, err := decode(buf)
-	if err != nil {
+	if err == nil {
+		t.Log(obj2)
+	} else {
 		t.Fatal(err)
 		return
-	} else {
-		t.Log(obj2)
 	}
 	if !bytes.Equal(obj2, obj) {
 		t.Fatal(string(obj2))

@@ -81,37 +81,39 @@ func addUser(name, pass string, pri int) bool {
 	return true
 }
 
-func deleteUser(name string) bool {
+func deleteUser(name string) (ret bool) {
 	if _, ok := mapUser[name]; !ok {
-		return false
+		ret = false
 	} else {
 		delete(mapUser, name)
+		ret = true
 	}
-	return true
+	return
 }
 
-func motifyUserInfo(name, pass string, pri int) bool {
+func motifyUserInfo(name, pass string, pri int) (ret bool) {
+	ret = true
 	if u, ok := mapUser[name]; !ok {
-		return false
+		ret = false
 	} else {
 		if pass != "" {
 			u.setPassword(pass)
 		} else if pri != -1 {
 			u.setPrivilege(pri)
 		} else {
-			return false
+			ret = false
 		}
 	}
-	return true
+	return
 }
 
-func getPrivilege(name string) int {
+func getPrivilege(name string) (ret int) {
 	if u, ok := mapUser[name]; !ok {
-		return 0
+		ret = 0
 	} else {
-		return u.getPrivilege()
+		ret = u.getPrivilege()
 	}
-	return 0
+	return ret
 }
 
 func input(line []byte) bool {
@@ -125,7 +127,7 @@ func input(line []byte) bool {
 }
 
 func output(channel chan []byte, outPutSign []byte) {
-	for k, _ := range mapUser {
+	for k := range mapUser {
 		u := mapUser[k]
 		line, _ := u.encode()
 		channel <- line

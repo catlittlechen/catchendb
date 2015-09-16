@@ -7,60 +7,60 @@ type Rsp struct {
 }
 
 const (
-	CMD_AUT      = "aut"
-	CMD_UADD     = "useradd"
-	CMD_UDEL     = "userdelete"
-	CMD_UPAS     = "userpass"
-	CMD_UPRI     = "userprivilege"
-	CMD_SET      = "set"
-	CMD_GET      = "get"
-	CMD_DEL      = "del"
-	CMD_SETEX    = "setex"
-	CMD_DELAY    = "delay"
-	CMD_EXPIRE   = "expire"
-	CMD_TTL      = "ttl"
-	CMD_TTS      = "tts"
-	CMD_BEGIN    = "begin"
-	CMD_COMMIT   = "commit"
-	CMD_ROLLBACK = "rollback"
+	CMDAUT      = "aut"
+	CMDUADD     = "useradd"
+	CMDUDEL     = "userdelete"
+	CMDUPAS     = "userpass"
+	CMDUPRI     = "userprivilege"
+	CMDSET      = "set"
+	CMDGET      = "get"
+	CMDDEL      = "del"
+	CMDSETEX    = "setex"
+	CMDDELAY    = "delay"
+	CMDEXPIRE   = "expire"
+	CMDTTL      = "ttl"
+	CMDTTS      = "tts"
+	CMDBEGIN    = "begin"
+	CMDCOMMIT   = "commit"
+	CMDROLLBACK = "rollback"
 )
 
 const (
-	ERR_URL_PARSE     = 100
-	ERR_CMD_MISS      = 101
-	ERR_PARSE_MISS    = 102
-	ERR_ACCESS_DENIED = 103
-	ERR_SYSTEM_BUSY   = 104
-	ERR_SYSTEM_EROR   = 105
+	ERRURLPARSE     = 100
+	ERRCMDMISS      = 101
+	ERRPARSEMISS    = 102
+	ERRACCESSDENIED = 103
+	ERRSYSTEMBUSY   = 104
+	ERRSYSTEMEROR   = 105
 
-	ERR_USER_PASS      = 200
-	ERR_USER_DUPLICATE = 201
-	ERR_USER_NOT_EXIST = 202
-	ERR_USER_PRIVILEGE = 203
-	ERR_USER_MAX_ONLY  = 204
-	ERR_USER_MAX_USER  = 205
+	ERRUSERPASS      = 200
+	ERRUSERDUPLICATE = 201
+	ERRUSERNOTEXIST  = 202
+	ERRUSERPRIVILEGE = 203
+	ERRUSERMAXONLY   = 204
+	ERRUSERMAXUSER   = 205
 
-	ERR_CMD_SET    = 301
-	ERR_CMD_DEL    = 302
-	ERR_START_TIME = 303
-	ERR_END_TIME   = 304
-	ERR_CMD_DELAY  = 305
-	ERR_CMD_EXPIRE = 306
+	ERRCMDSET    = 301
+	ERRCMDDEL    = 302
+	ERRSTARTTIME = 303
+	ERRENDTIME   = 304
+	ERRCMDDELAY  = 305
+	ERRCMDEXPIRE = 306
 
-	ERR_TRA_BEGIN    = 401
-	ERR_TRA_NO_BEGIN = 402
-	ERR_TRA_USER     = 403
+	ERRTRABEGIN   = 401
+	ERRTRANOBEGIN = 402
+	ERRTRAUSER    = 403
 )
 
 const (
-	URL_CMD   = "cmd"
-	URL_KEY   = "key"
-	URL_VALUE = "value"
-	URL_START = "start"
-	URL_END   = "end"
-	URL_USER  = "user"
-	URL_PASS  = "pass"
-	URL_PRIV  = "priv"
+	URLCMD   = "cmd"
+	URLKEY   = "key"
+	URLVALUE = "value"
+	URLSTART = "start"
+	URLEND   = "end"
+	URLUSER  = "user"
+	URLPASS  = "pass"
+	URLPRIV  = "priv"
 )
 
 type Req struct {

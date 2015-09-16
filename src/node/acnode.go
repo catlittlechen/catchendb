@@ -334,13 +334,10 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 			return
 		}
 	} else {
-		if ac.transactionID == tranID {
-			//同个事务
-			return
-		} else {
+		if ac.transactionID != tranID {
 			ret = 3
-			return
 		}
+		return
 	}
 	ret = 2
 	return
@@ -456,7 +453,7 @@ func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
 	defer ac.childMutex.Unlock()
 
 	if ac.child[child] == nil {
-		ac.childNum += 1
+		ac.childNum++
 	}
 	ac.child[child] = node
 }
@@ -466,7 +463,7 @@ func (ac *acNodePageElem) delChild(child byte) {
 	defer ac.childMutex.Unlock()
 
 	if ac.child[child] != nil {
-		ac.childNum -= 1
+		ac.childNum--
 		ac.child[child] = nil
 	}
 }

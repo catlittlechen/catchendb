@@ -64,10 +64,8 @@ func LoadData() bool {
 	if err != nil {
 		if err != io.EOF {
 			lgd.Error("file[%s] read error[%s]", filename, err)
-			return false
-		} else {
-			return true
 		}
+		return err == io.EOF
 	} else if string(l) != magicKey {
 		lgd.Error("file[%s] magicKey[%s]", filename, l)
 		return false
@@ -250,7 +248,7 @@ func saveData() bool {
 		datastr2 = []byte(fmt.Sprintf(printsign, len(datastr)))
 		datastrSum = append(datastrSum, datastr2...)
 		datastrSum = append(datastrSum, datastr...)
-		count += 1
+		count++
 	}
 
 	printsign = "%0" + fmt.Sprintf("%d", userKeyLen/2) + "d"
