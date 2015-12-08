@@ -7,7 +7,7 @@ import (
 	"hash/fnv"
 )
 
-//import lgd "code.google.com/p/log4go"
+//import lgd "catchendb/src/log"
 
 func hash(s string, count int) (index int) {
 	h := fnv.New32a()

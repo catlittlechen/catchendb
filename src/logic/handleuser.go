@@ -5,7 +5,7 @@ import (
 	"catchendb/src/util"
 )
 
-//import lgd "code.google.com/p/log4go"
+//import lgd "catchendb/src/log"
 
 func handleUserAut(req Req, tranObj *transaction) (ok bool, username string) {
 	if req.C != CMD_AUT {

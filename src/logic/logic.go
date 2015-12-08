@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var (
 	userConnection map[string]int
@@ -20,7 +20,7 @@ func ReplicationLogic(conn *net.TCPConn) {
 	data := make([]byte, 1024)
 	count, err := conn.Read(data)
 	if err != nil {
-		lgd.Error("read error[%s]", err)
+		lgd.Errorf("read error[%s]", err)
 		return
 	}
 	ok, name, res := aut(data[:count])
@@ -40,7 +40,7 @@ func ClientLogic(conn *net.TCPConn) {
 	data := make([]byte, 1024)
 	count, err := conn.Read(data)
 	if err != nil {
-		lgd.Error("read error[%s]", err)
+		lgd.Errorf("read error[%s]", err)
 		return
 
 	}
@@ -156,7 +156,7 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 	req := Req{}
 	err := json.Unmarshal(data, &req)
 	if err != nil {
-		lgd.Error("ParseQuery fail with the data %s", string(data))
+		lgd.Errorf("ParseQuery fail with the data %s", string(data))
 		rsp.C = ERR_URL_PARSE
 		r = util.JsonOut(rsp)
 		return

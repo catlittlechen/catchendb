@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var (
 	nowTime int64
@@ -23,7 +23,7 @@ func handleSet(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Put(req.Key, req.Value, 0, 0, tid) {
-		lgd.Error("set fail! key[%s] value[%s]", req.Key, req.Value)
+		lgd.Errorf("set fail! key[%s] value[%s]", req.Key, req.Value)
 		rsp.C = ERR_CMD_SET
 	}
 	if tranObj != nil && tranObj.isBegin() {
@@ -71,7 +71,7 @@ func handleDel(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Del(key, tid) {
-		lgd.Error("del fail! key[%s]", key)
+		lgd.Errorf("del fail! key[%s]", key)
 		rsp.C = ERR_CMD_DEL
 	}
 	if tranObj != nil && tranObj.isBegin() {
@@ -95,7 +95,7 @@ func handleSetEx(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Put(key, value, req.StartTime, req.EndTime, tid) {
-		lgd.Error("set fail! key[%s] value[%s]", key, value)
+		lgd.Errorf("set fail! key[%s] value[%s]", key, value)
 		rsp.C = ERR_CMD_SET
 	}
 
@@ -123,7 +123,7 @@ func handleDelay(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Set(key, req.StartTime, 0, tid) {
-		lgd.Error("delay fail! key[%s] startTime[%d]", key, req.StartTime)
+		lgd.Errorf("delay fail! key[%s] startTime[%d]", key, req.StartTime)
 		rsp.C = ERR_CMD_DELAY
 	}
 	if tranObj != nil && tranObj.isBegin() {
@@ -150,7 +150,7 @@ func handleExpire(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Set(key, 0, req.EndTime, tid) {
-		lgd.Error("delay fail! key[%s] endTime[%d]", key, req.EndTime)
+		lgd.Errorf("delay fail! key[%s] endTime[%d]", key, req.EndTime)
 		rsp.C = ERR_CMD_EXPIRE
 	}
 	if tranObj != nil && tranObj.isBegin() {

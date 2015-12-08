@@ -5,7 +5,7 @@ import (
 	"catchendb/src/util"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 const (
 	TYPE_R = 4
@@ -45,7 +45,7 @@ func mapAction(req Req, privilege int, replication bool, tranObj *transaction) [
 			}
 		}
 		if len(req.Key) == 0 && len(req.UserName) == 0 {
-			lgd.Error("argv[%+v] is illegal", req)
+			lgd.Errorf("argv[%+v] is illegal", req)
 			rsp.C = ERR_PARSE_MISS
 			return util.JsonOut(rsp)
 		}
@@ -57,7 +57,7 @@ func mapAction(req Req, privilege int, replication bool, tranObj *transaction) [
 
 func registerCMD(key string, argvcount int, function func(Req, *transaction) []byte, typ int) {
 	if _, ok := functionAction[key]; ok {
-		lgd.Error("duplicate key %s", key)
+		lgd.Errorf("duplicate key %s", key)
 		return
 	} else {
 		lgd.Info("reister cmd %s", key)

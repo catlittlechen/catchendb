@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var configFile = flag.String("config", "../etc/config.xml", "configFile")
 var displayHelp = flag.Bool("help", false, "display HelpMessage")
@@ -25,8 +25,8 @@ var displayHelp = flag.Bool("help", false, "display HelpMessage")
 func handleReplicationServer(conn *net.TCPConn) {
 	defer func() {
 		if re := recover(); re != nil {
-			lgd.Error("recover %s", re)
-			lgd.Error("stack %s", debug.Stack())
+			lgd.Errorf("recover %s", re)
+			lgd.Errorf("stack %s", debug.Stack())
 		}
 	}()
 	defer conn.Close()
@@ -49,7 +49,7 @@ func replicationloop() {
 	for {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
-			lgd.Error("listener Accept error[%s]", err)
+			lgd.Errorf("listener Accept error[%s]", err)
 			return
 		}
 
@@ -60,8 +60,8 @@ func replicationloop() {
 func handleServer(conn *net.TCPConn) {
 	defer func() {
 		if re := recover(); re != nil {
-			lgd.Error("recover %s", re)
-			lgd.Error("stack %s", debug.Stack())
+			lgd.Errorf("recover %s", re)
+			lgd.Errorf("stack %s", debug.Stack())
 		}
 	}()
 	defer conn.Close()
@@ -84,7 +84,7 @@ func mainloop() {
 	for {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
-			lgd.Error("listener Accept error[%s]", err)
+			lgd.Errorf("listener Accept error[%s]", err)
 			return
 		}
 
@@ -105,7 +105,7 @@ func Init() bool {
 	os.Chdir(path.Dir(os.Args[0]))
 	config.LoadConf(*configFile)
 
-	lgd.LoadConfiguration(config.GlobalConf.Log)
+	lgd.Init(config.GlobalConf.Log)
 	os.Chmod(config.GlobalConf.Log, 0666)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	return node.Init() && logic.LoadData() && data.Init() && true

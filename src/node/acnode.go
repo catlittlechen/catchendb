@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var (
 	acRoot *acNodeRoot
@@ -41,8 +41,8 @@ func (ac *acNodeRoot) createData(key, value string, start, end int64, node *acNo
 func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int) bool {
 	defer func() {
 		if re := recover(); re != nil {
-			lgd.Error("recover %s", re)
-			lgd.Error("stack %s", debug.Stack())
+			lgd.Errorf("recover %s", re)
+			lgd.Errorf("stack %s", debug.Stack())
 		}
 	}()
 
@@ -145,7 +145,6 @@ func (ac *acNodeRoot) insertNode(key, value string, start, end int64, tranID int
 		}
 
 	}
-	return false
 }
 
 func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
@@ -183,7 +182,6 @@ func (ac *acNodeRoot) search(key string) (node *acNodePageElem) {
 		key = key[index:]
 		parent = child
 	}
-	return
 }
 
 func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
@@ -297,7 +295,7 @@ func (ac *acNodeRoot) input(line []byte) bool {
 	}
 	go func() {
 		if !ac.insertNode(d.Key, d.Value, d.StartTime, d.EndTime, 0) {
-			lgd.Error("insert node fail! --> data %+v", d)
+			lgd.Errorf("insert node fail! --> data %+v", d)
 		}
 	}()
 	return true
@@ -425,8 +423,8 @@ func (ac *acNodePageElem) unlock(key byte) {
 	var mutex *sync.Mutex
 	ok := false
 	if mutex, ok = ac.nodeChildMutex[key]; !ok {
-		lgd.Error("%+v", ac.nodeChildMutex)
-		lgd.Error(uint8(key))
+		lgd.Errorf("%+v", ac.nodeChildMutex)
+		lgd.Errorf("%+d", uint8(key))
 	}
 	ac.nodeMutex.Unlock()
 

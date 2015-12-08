@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var (
 	outPutSign   = []byte("quit")
@@ -51,7 +51,7 @@ func LoadData() bool {
 
 	fp, err := os.Open(filename)
 	if err != nil {
-		lgd.Error("file[%s] open fail! error[%s]", filename, err)
+		lgd.Errorf("file[%s] open fail! error[%s]", filename, err)
 		return false
 	}
 	defer fp.Close()
@@ -63,13 +63,13 @@ func LoadData() bool {
 	lens, err := fp.Read(l)
 	if err != nil {
 		if err != io.EOF {
-			lgd.Error("file[%s] read error[%s]", filename, err)
+			lgd.Errorf("file[%s] read error[%s]", filename, err)
 			return false
 		} else {
 			return true
 		}
 	} else if string(l) != magicKey {
-		lgd.Error("file[%s] magicKey[%s]", filename, l)
+		lgd.Errorf("file[%s] magicKey[%s]", filename, l)
 		return false
 	}
 
@@ -77,15 +77,15 @@ func LoadData() bool {
 	l = make([]byte, timeKeyLen)
 	lens, err = fp.Read(l)
 	if err != nil {
-		lgd.Error("faile[%s] read error[%s]", filename, err)
+		lgd.Errorf("faile[%s] read error[%s]", filename, err)
 		return false
 	} else if lens != timeKeyLen {
-		lgd.Error("file[%s] read error[len is illegal]", filename)
+		lgd.Errorf("file[%s] read error[len is illegal]", filename)
 		return false
 	} else {
 		lastModifyTime, err = strconv.ParseInt(string(l), 10, 64)
 		if err != nil {
-			lgd.Error("file[%s] length fail! data[%s]", filename, l)
+			lgd.Errorf("file[%s] length fail! data[%s]", filename, l)
 			return false
 		}
 	}
@@ -94,15 +94,15 @@ func LoadData() bool {
 	l = make([]byte, userKeyLen)
 	lens, err = fp.Read(l)
 	if err != nil {
-		lgd.Error("faile[%s] read error[%s]", filename, err)
+		lgd.Errorf("faile[%s] read error[%s]", filename, err)
 		return false
 	} else if lens != userKeyLen {
-		lgd.Error("file[%s] read error[len is illegal]", filename)
+		lgd.Errorf("file[%s] read error[len is illegal]", filename)
 		return false
 	} else {
 		lengthUser, err = strconv.Atoi(string(l))
 		if err != nil {
-			lgd.Error("file[%s] length fail! data[%s]", filename, l)
+			lgd.Errorf("file[%s] length fail! data[%s]", filename, l)
 			return false
 		}
 	}
@@ -116,27 +116,27 @@ func LoadData() bool {
 		l = make([]byte, length)
 		lens, err = fp.Read(l)
 		if err != nil {
-			lgd.Error("file[%s] read error[%s]", filename, err)
+			lgd.Errorf("file[%s] read error[%s]", filename, err)
 			return false
 		}
 		length, err = strconv.Atoi(string(l))
 		if err != nil {
-			lgd.Error("file[%s] length fail! data[%s]", filename, l)
+			lgd.Errorf("file[%s] length fail! data[%s]", filename, l)
 			return false
 		}
 		l = make([]byte, length)
 		lens, err = fp.Read(l)
 		if err != nil {
-			lgd.Error("file[%s] read error[%s]", filename, err)
+			lgd.Errorf("file[%s] read error[%s]", filename, err)
 			return false
 		}
 		line, err = store.Decode(l)
 		if err != nil {
-			lgd.Error("data[%s] is illegal", l)
+			lgd.Errorf("data[%s] is illegal", l)
 			return false
 		}
 		if !user.InPut(line) {
-			lgd.Error("data[%s] is illegal", line)
+			lgd.Errorf("data[%s] is illegal", line)
 			return false
 		}
 		length = lengthUser
@@ -146,15 +146,15 @@ func LoadData() bool {
 	l = make([]byte, dataKeyLen)
 	lens, err = fp.Read(l)
 	if err != nil {
-		lgd.Error("file[%s] read error[%s]", filename, err)
+		lgd.Errorf("file[%s] read error[%s]", filename, err)
 		return false
 	} else if lens != dataKeyLen {
-		lgd.Error("file[%s] read error[len is illegal]", filename)
+		lgd.Errorf("file[%s] read error[len is illegal]", filename)
 		return false
 	} else {
 		lengthData, err = strconv.Atoi(string(l))
 		if err != nil {
-			lgd.Error("file[%s] length fail! data[%s]", filename, l)
+			lgd.Errorf("file[%s] length fail! data[%s]", filename, l)
 			return false
 		}
 	}
@@ -168,25 +168,25 @@ func LoadData() bool {
 			if err == io.EOF && lengthBool {
 				break
 			} else {
-				lgd.Error("file[%s] read error[%s]", filename, err)
+				lgd.Errorf("file[%s] read error[%s]", filename, err)
 				return false
 			}
 		}
 		if lengthBool {
 			length, err = strconv.Atoi(string(l))
 			if err != nil {
-				lgd.Error("file[%s] length fail! data[%s]", filename, l)
+				lgd.Errorf("file[%s] length fail! data[%s]", filename, l)
 				return false
 			}
 		} else {
 			length = lengthData
 			line, err = store.Decode(l)
 			if err != nil {
-				lgd.Error("data[%s] is illegal", l)
+				lgd.Errorf("data[%s] is illegal", l)
 				return false
 			}
 			if !node.InPut(line) {
-				lgd.Error("data[%s] is illegal", line)
+				lgd.Errorf("data[%s] is illegal", line)
 				return false
 			}
 		}
@@ -216,14 +216,14 @@ func saveData() bool {
 
 	fp, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
-		lgd.Error("file[%s] open fail! err[%s]", filename, err)
+		lgd.Errorf("file[%s] open fail! err[%s]", filename, err)
 		return false
 	}
 
 	//magicKey
 	_, err = fp.Write([]byte(magicKey))
 	if err != nil {
-		lgd.Error("file[%s] write fail! err[%s]", filename, err)
+		lgd.Errorf("file[%s] write fail! err[%s]", filename, err)
 		return false
 	}
 
@@ -231,7 +231,7 @@ func saveData() bool {
 	l := fmt.Sprintf(printsign, lastModifyTime)
 	_, err = fp.Write([]byte(l))
 	if err != nil {
-		lgd.Error("file[%s] write fail! err[%s]", filename, err)
+		lgd.Errorf("file[%s] write fail! err[%s]", filename, err)
 		return false
 	}
 
@@ -258,7 +258,7 @@ func saveData() bool {
 	datastr = append(datastr, datastrSum...)
 	_, err = fp.Write(datastr)
 	if err != nil {
-		lgd.Error("file[%s] write fail! err[%s]", filename, err)
+		lgd.Errorf("file[%s] write fail! err[%s]", filename, err)
 		return false
 	}
 
@@ -266,7 +266,7 @@ func saveData() bool {
 	datastr = []byte(fmt.Sprintf("%0"+fmt.Sprintf("%d", dataKeyLen)+"d", lengthData))
 	_, err = fp.Write(datastr)
 	if err != nil {
-		lgd.Error("file[%s] write fail! err[%s]", filename, err)
+		lgd.Errorf("file[%s] write fail! err[%s]", filename, err)
 		return false
 	}
 	printsign = "%0" + fmt.Sprintf("%d", lengthData) + "d"
@@ -279,14 +279,14 @@ func saveData() bool {
 		datastr = append([]byte(fmt.Sprintf(printsign, len(datastr))), datastr...)
 		_, err = fp.Write(datastr)
 		if err != nil {
-			lgd.Error("file[%s] write fail! err[%s]", filename, err)
+			lgd.Errorf("file[%s] write fail! err[%s]", filename, err)
 			return false
 		}
 	}
 	fp.Close()
 	err = os.Rename(filename, config.GlobalConf.Data.DataPath+config.GlobalConf.Data.DataName)
 	if err != nil {
-		lgd.Error("file[%s] rename fail! err[%s]", filename, err)
+		lgd.Errorf("file[%s] rename fail! err[%s]", filename, err)
 		return false
 	}
 
@@ -299,7 +299,6 @@ func autoSaveData() (ret bool) {
 		time.Sleep(config.GlobalConf.Data.DataTime * time.Second)
 		saveData()
 	}
-	return
 }
 
 func init() {

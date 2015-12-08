@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 const (
 	NODE_KEY_SMALL = -1
@@ -321,7 +321,7 @@ func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool
 		}
 		nodeTmp := nr.createNode(key, value, startTime, endTime, node.parent, node.lChild, node.rChild)
 		if node == nil {
-			lgd.Error("reset value fail!")
+			lgd.Errorf("reset value fail!")
 			return false
 		} else {
 			node.lChild.parent = nodeTmp
@@ -340,10 +340,8 @@ func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool
 	if node = nr.createNode(key, value, startTime, endTime, nil, nil, nil); node != nil {
 		nr.insert(node)
 		return true
-	} else {
-		lgd.Error("createNode fail!")
-		return false
 	}
+	lgd.Errorf("createNode fail!")
 	return false
 }
 

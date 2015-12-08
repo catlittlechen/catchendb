@@ -124,7 +124,7 @@ func mainloop(capts, begin int) {
 			}
 			data2 = fun([]byte(bp))
 			if data2 == nil {
-				fmt.Println("wrong argv\n")
+				fmt.Println("wrong argv")
 				continue
 			}
 			_, err = conn.Write(data2)
@@ -138,7 +138,6 @@ func mainloop(capts, begin int) {
 				return
 			}
 
-			var rsp Rsp
 			err = json.Unmarshal(data[:count], &rsp)
 			if err != nil {
 				fmt.Println("Fatal Data " + string(data[:count]) + "Error " + err.Error() + "\n")
@@ -163,7 +162,7 @@ func mainloop(capts, begin int) {
 			}
 			data2 = fun([]byte(bp))
 			if data2 == nil {
-				fmt.Println("wrong argv\n")
+				fmt.Println("wrong argv")
 				continue
 			}
 			_, err = conn.Write(data2)

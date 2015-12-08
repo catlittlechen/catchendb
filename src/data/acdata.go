@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 type AcNodeData struct {
 	size      int

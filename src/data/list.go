@@ -5,7 +5,7 @@ import (
 	"unsafe"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var pageListSize int
 var globalPageList pageList
@@ -75,7 +75,7 @@ func (pn *pageNode) free(p *page) {
 						freenode.pre = fn
 						return
 					} else {
-						lgd.Error("Bug!")
+						lgd.Errorf("Bug!")
 					}
 				} else {
 					fn := new(freeNode)
@@ -86,7 +86,7 @@ func (pn *pageNode) free(p *page) {
 					return
 				}
 			} else {
-				lgd.Error("Bug!")
+				lgd.Errorf("Bug!")
 			}
 		} else {
 			if freenode.next != nil {
@@ -104,14 +104,13 @@ func (pn *pageNode) free(p *page) {
 			}
 		}
 	}
-	return
 }
 
 func (pn *pageNode) mmap(count uint64) bool {
 	newPageListSize := mmapSize(pageListSize)
 	pb, err := mmap(newPageListSize)
 	if err != nil {
-		lgd.Error("mmap error %s, pageListSize %d", err, newPageListSize)
+		lgd.Errorf("mmap error %s, pageListSize %d", err, newPageListSize)
 		return false
 	} else {
 		pn.pagebyte = (*[mmapBranch]byte)(unsafe.Pointer(&pb[0]))
