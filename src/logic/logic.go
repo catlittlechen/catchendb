@@ -57,7 +57,7 @@ func ClientLogic(conn *net.TCPConn) {
 	}
 
 	privilege := 0
-	errRes := util.JsonOut(Rsp{
+	errRes := util.JSONOut(Rsp{
 		C: ERR_URL_PARSE,
 	})
 	tranObj := new(transaction)
@@ -113,7 +113,7 @@ func clientTransactionLogic(req Req, tranObj *transaction) (normal bool, res []b
 		} else {
 			tranObj.init()
 		}
-		res = util.JsonOut(rsp)
+		res = util.JSONOut(rsp)
 		return
 	case CMD_ROLLBACK:
 		if tranObj.isBegin() {
@@ -121,7 +121,7 @@ func clientTransactionLogic(req Req, tranObj *transaction) (normal bool, res []b
 		} else {
 			rsp.C = ERR_TRA_NO_BEGIN
 		}
-		res = util.JsonOut(rsp)
+		res = util.JSONOut(rsp)
 		return
 	case CMD_COMMIT:
 		if tranObj.isBegin() {
@@ -129,7 +129,7 @@ func clientTransactionLogic(req Req, tranObj *transaction) (normal bool, res []b
 		} else {
 			rsp.C = ERR_TRA_NO_BEGIN
 		}
-		res = util.JsonOut(rsp)
+		res = util.JSONOut(rsp)
 		return
 
 	default:
@@ -144,7 +144,7 @@ func disConnection(name string) {
 	if userConnection[name] == 1 {
 		delete(userConnection, name)
 	} else {
-		userConnection[name] -= 1
+		userConnection[name]--
 	}
 	return
 }
@@ -158,35 +158,35 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 	if err != nil {
 		lgd.Errorf("ParseQuery fail with the data %s", string(data))
 		rsp.C = ERR_URL_PARSE
-		r = util.JsonOut(rsp)
+		r = util.JSONOut(rsp)
 		return
 	}
 	ok, name = handleUserAut(req, nil)
 	if !ok {
 		rsp.C = ERR_ACCESS_DENIED
-		r = util.JsonOut(rsp)
+		r = util.JSONOut(rsp)
 		return
 	}
 	userMutex.Lock()
 	if _, ok2 := userConnection[name]; ok2 {
 		if userConnection[name] >= config.GlobalConf.MaxOnlyUserConnection {
 			rsp.C = ERR_USER_MAX_ONLY
-			r = util.JsonOut(rsp)
+			r = util.JSONOut(rsp)
 			userMutex.Unlock()
 			return
 		}
-		userConnection[name] += 1
+		userConnection[name]++
 	} else {
 		if len(userConnection) >= config.GlobalConf.MaxUserConnection {
 			rsp.C = ERR_USER_MAX_USER
-			r = util.JsonOut(rsp)
+			r = util.JSONOut(rsp)
 			userMutex.Unlock()
 			return
 		}
 		userConnection[name] = 1
 	}
 	userMutex.Unlock()
-	r = util.JsonOut(rsp)
+	r = util.JSONOut(rsp)
 	return
 }
 

@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func JsonOut(obj interface{}) []byte {
+func JSONOut(obj interface{}) []byte {
 	js, _ := json.Marshal(obj)
 	return js
 }

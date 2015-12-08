@@ -10,9 +10,9 @@ import (
 import lgd "catchendb/src/log"
 
 const (
-	NODE_KEY_SMALL = -1
-	NODE_KEY_EQUAL = 0
-	NODE_KEY_LARGE = 1
+	nodeKeySmall = -1
+	nodeKeyEqual = 0
+	nodeKeyLarge = 1
 )
 
 var (
@@ -135,16 +135,15 @@ func (nr *nodeRoot) search(key string) (node *nodePageElem) {
 
 	for node != nil {
 		switch node.compareKey(key) {
-		case NODE_KEY_EQUAL:
+		case nodeKeyEqual:
 			if node.isEnd() {
 				nr.delet(node)
 				return nil
-			} else {
-				return node
 			}
-		case NODE_KEY_SMALL:
+			return node
+		case nodeKeySmall:
 			node = node.rChild
-		case NODE_KEY_LARGE:
+		case nodeKeyLarge:
 			node = node.lChild
 		}
 	}
@@ -323,19 +322,18 @@ func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool
 		if node == nil {
 			lgd.Errorf("reset value fail!")
 			return false
-		} else {
-			node.lChild.parent = nodeTmp
-			node.rChild.parent = nodeTmp
-			if node.parent.lChild == node {
-				node.parent.lChild = nodeTmp
-			} else {
-				node.parent.rChild = nodeTmp
-			}
-			if node.isRed() {
-				nodeTmp.setRed()
-			}
-			node.free()
 		}
+		node.lChild.parent = nodeTmp
+		node.rChild.parent = nodeTmp
+		if node.parent.lChild == node {
+			node.parent.lChild = nodeTmp
+		} else {
+			node.parent.rChild = nodeTmp
+		}
+		if node.isRed() {
+			nodeTmp.setRed()
+		}
+		node.free()
 	}
 	if node = nr.createNode(key, value, startTime, endTime, nil, nil, nil); node != nil {
 		nr.insert(node)
@@ -556,11 +554,11 @@ func (n *nodePageElem) compare(node *nodePageElem) bool {
 func (n *nodePageElem) compareKey(key string) int {
 	ok := bytes.Compare(n.key(), []byte(key))
 	if ok < 0 {
-		return NODE_KEY_SMALL
+		return nodeKeySmall
 	} else if ok > 0 {
-		return NODE_KEY_LARGE
+		return nodeKeyLarge
 	}
-	return NODE_KEY_EQUAL
+	return nodeKeyEqual
 }
 
 func (n *nodePageElem) key() (key []byte) {

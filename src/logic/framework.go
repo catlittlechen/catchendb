@@ -27,44 +27,44 @@ func mapAction(req Req, privilege int, replication bool, tranObj *transaction) [
 		case TYPE_R:
 			if privilege < 4 || privilege > 7 {
 				rsp.C = ERR_ACCESS_DENIED
-				return util.JsonOut(rsp)
+				return util.JSONOut(rsp)
 			}
 		case TYPE_W:
 			if (privilege/2 != 1 && privilege/2 != 3) || (!config.GlobalConf.MasterSlave.IsMaster && !replication) {
 				rsp.C = ERR_ACCESS_DENIED
-				return util.JsonOut(rsp)
+				return util.JSONOut(rsp)
 			}
 		case TYPE_X:
 			if privilege != 1 && privilege != 3 && privilege != 7 {
 				rsp.C = ERR_ACCESS_DENIED
-				return util.JsonOut(rsp)
+				return util.JSONOut(rsp)
 			}
 			if tranObj.isBegin() {
 				rsp.C = ERR_TRA_USER
-				return util.JsonOut(rsp)
+				return util.JSONOut(rsp)
 			}
 		}
 		if len(req.Key) == 0 && len(req.UserName) == 0 {
 			lgd.Errorf("argv[%+v] is illegal", req)
 			rsp.C = ERR_PARSE_MISS
-			return util.JsonOut(rsp)
+			return util.JSONOut(rsp)
 		}
 		return function(req, tranObj)
 	}
 
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func registerCMD(key string, argvcount int, function func(Req, *transaction) []byte, typ int) {
 	if _, ok := functionAction[key]; ok {
 		lgd.Errorf("duplicate key %s", key)
-		return
 	} else {
 		lgd.Info("reister cmd %s", key)
 		functionAction[key] = function
 		functionArgv[key] = argvcount
 		functionType[key] = typ
 	}
+	return
 }
 
 func init() {

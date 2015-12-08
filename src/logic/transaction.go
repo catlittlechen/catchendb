@@ -17,9 +17,9 @@ const (
 	UPDATE_TYPE = 3
 )
 
-func getTransactionId() (id int) {
+func getTransactionID() (id int) {
 	transactionMutex.Lock()
-	transactionID += 1
+	transactionID++
 	id = transactionID
 	transactionMutex.Unlock()
 	return
@@ -32,7 +32,7 @@ type transaction struct {
 }
 
 func (t *transaction) init() {
-	t.ID = getTransactionId()
+	t.ID = getTransactionID()
 	t.ChangeLog = []transactionLog{}
 	t.ChangeData = make(map[string]*data.Data)
 }

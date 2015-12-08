@@ -20,7 +20,7 @@ func HandleUserAdd(data []byte) []byte {
 		PassWord:  argv[2],
 		Privilege: pri,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func handleUserDel(data []byte) []byte {
@@ -32,7 +32,7 @@ func handleUserDel(data []byte) []byte {
 		C:        CMD_UDEL,
 		UserName: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func handleUserPas(data []byte) []byte {
@@ -44,7 +44,7 @@ func handleUserPas(data []byte) []byte {
 		C:        CMD_UPAS,
 		UserName: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func handleUserPri(data []byte) []byte {
@@ -60,7 +60,7 @@ func handleUserPri(data []byte) []byte {
 		C:         CMD_UPRI,
 		Privilege: pri,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func init() {

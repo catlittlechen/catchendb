@@ -76,7 +76,7 @@ func mainloop() {
 		UserName: *username,
 		PassWord: *password,
 	}
-	_, err = conn.Write(util.JsonOut(req))
+	_, err = conn.Write(util.JSONOut(req))
 	if err != nil {
 		out.WriteString("ccdb>Fatal Error " + err.Error() + "\n")
 		return

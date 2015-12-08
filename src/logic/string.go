@@ -37,7 +37,7 @@ func handleSet(req Req, tranObj *transaction) []byte {
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleGet(req Req, tranObj *transaction) []byte {
@@ -51,14 +51,14 @@ func handleGet(req Req, tranObj *transaction) []byte {
 			if nowTime > data.StartTime {
 				rsp.D = data.Value
 			}
-			return util.JsonOut(rsp)
+			return util.JSONOut(rsp)
 		}
 	}
 	value, startTime, _ := node.Get(key)
 	if nowTime > startTime {
 		rsp.D = value
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleDel(req Req, tranObj *transaction) []byte {
@@ -81,7 +81,7 @@ func handleDel(req Req, tranObj *transaction) []byte {
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleSetEx(req Req, tranObj *transaction) []byte {
@@ -110,7 +110,7 @@ func handleSetEx(req Req, tranObj *transaction) []byte {
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleDelay(req Req, tranObj *transaction) []byte {
@@ -137,7 +137,7 @@ func handleDelay(req Req, tranObj *transaction) []byte {
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleExpire(req Req, tranObj *transaction) []byte {
@@ -164,7 +164,7 @@ func handleExpire(req Req, tranObj *transaction) []byte {
 	} else {
 		go replicationData(req)
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleTTL(req Req, tranObj *transaction) []byte {
@@ -180,7 +180,7 @@ func handleTTL(req Req, tranObj *transaction) []byte {
 			} else {
 				rsp.D = "-1"
 			}
-			return util.JsonOut(rsp)
+			return util.JSONOut(rsp)
 		}
 	}
 	_, _, endTime := node.Get(key)
@@ -189,7 +189,7 @@ func handleTTL(req Req, tranObj *transaction) []byte {
 	} else {
 		rsp.D = strconv.Itoa(int(endTime - nowTime))
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleTTS(req Req, tranObj *transaction) []byte {
@@ -205,7 +205,7 @@ func handleTTS(req Req, tranObj *transaction) []byte {
 			} else {
 				rsp.D = "-1"
 			}
-			return util.JsonOut(rsp)
+			return util.JSONOut(rsp)
 		}
 	}
 	_, startTime, _ := node.Get(key)
@@ -214,7 +214,7 @@ func handleTTS(req Req, tranObj *transaction) []byte {
 	} else {
 		rsp.D = strconv.Itoa(int(startTime - nowTime))
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 
 }
 

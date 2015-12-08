@@ -13,7 +13,7 @@ func HandleBegin(data []byte) []byte {
 	req := Req{
 		C: CMD_BEGIN,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleRollback(data []byte) []byte {
@@ -24,7 +24,7 @@ func HandleRollback(data []byte) []byte {
 	req := Req{
 		C: CMD_ROLLBACK,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleCommit(data []byte) []byte {
@@ -35,7 +35,7 @@ func HandleCommit(data []byte) []byte {
 	req := Req{
 		C: CMD_COMMIT,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func init() {

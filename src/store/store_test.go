@@ -16,9 +16,8 @@ func testfunc(obj []byte, t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 		return
-	} else {
-		t.Log(obj2)
 	}
+	t.Log(obj2)
 	if !bytes.Equal(obj2, obj) {
 		t.Fatal(string(obj2))
 	}

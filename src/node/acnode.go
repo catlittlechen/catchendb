@@ -8,10 +8,6 @@ import (
 
 import lgd "catchendb/src/log"
 
-var (
-	acRoot *acNodeRoot
-)
-
 type acNodeRoot struct {
 	node *acNodePageElem
 }
@@ -194,15 +190,16 @@ func (ac *acNodeRoot) searchNode(key string) (value string, start, end int64) {
 }
 
 func (ac *acNodeRoot) setStartTime(key string, start int64, tranID int) bool {
-	if node := ac.search(key); node != nil {
-		if ret := node.transaction(tranID); ret == 1 {
-			return true
-		} else if ret == 3 {
-			return false
-		}
-		return node.setStartTime(start)
+	var node *acNodePageElem
+	if node = ac.search(key); node == nil {
+		return false
 	}
-	return false
+	if ret := node.transaction(tranID); ret == 1 {
+		return true
+	} else if ret == 3 {
+		return false
+	}
+	return node.setStartTime(start)
 }
 
 func (ac *acNodeRoot) setEndTime(key string, end int64, tranID int) bool {
@@ -333,13 +330,11 @@ func (ac *acNodePageElem) transaction(tranID int) (ret int) {
 			return
 		}
 	} else {
-		if ac.transactionID == tranID {
-			//同个事务
-			return
-		} else {
+		if ac.transactionID != tranID {
+			//不同个事务
 			ret = 3
-			return
 		}
+		return
 	}
 	ret = 2
 	return
@@ -455,7 +450,7 @@ func (ac *acNodePageElem) setChild(child byte, node *acNodePageElem) {
 	defer ac.childMutex.Unlock()
 
 	if ac.child[child] == nil {
-		ac.childNum += 1
+		ac.childNum++
 	}
 	ac.child[child] = node
 }
@@ -465,7 +460,7 @@ func (ac *acNodePageElem) delChild(child byte) {
 	defer ac.childMutex.Unlock()
 
 	if ac.child[child] != nil {
-		ac.childNum -= 1
+		ac.childNum--
 		ac.child[child] = nil
 	}
 }

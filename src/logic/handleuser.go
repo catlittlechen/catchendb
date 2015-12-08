@@ -21,7 +21,7 @@ func handleUserAdd(req Req, tranObj *transaction) []byte {
 	if !user.AddUser(req.UserName, req.PassWord, req.Privilege) {
 		rsp.C = ERR_USER_DUPLICATE
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleUserDelete(req Req, tranObj *transaction) []byte {
@@ -29,7 +29,7 @@ func handleUserDelete(req Req, tranObj *transaction) []byte {
 	if !user.DeleteUser(req.UserName) {
 		rsp.C = ERR_USER_NOT_EXIST
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleUserPass(req Req, tranObj *transaction) []byte {
@@ -37,7 +37,7 @@ func handleUserPass(req Req, tranObj *transaction) []byte {
 	if !user.MotifyUserInfo(req.UserName, req.PassWord, -1) {
 		rsp.C = ERR_USER_NOT_EXIST
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func handleUserPriv(req Req, tranObj *transaction) []byte {
@@ -45,7 +45,7 @@ func handleUserPriv(req Req, tranObj *transaction) []byte {
 	if !user.MotifyUserInfo(req.UserName, "", req.Privilege) {
 		rsp.C = ERR_USER_PRIVILEGE
 	}
-	return util.JsonOut(rsp)
+	return util.JSONOut(rsp)
 }
 
 func initUser() {

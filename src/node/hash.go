@@ -59,7 +59,7 @@ func (hr *hashRoot) output(channel chan []byte, sign []byte) {
 	for {
 		datastr = <-hrchan
 		if bytes.Equal(datastr, sign) {
-			index += 1
+			index++
 			if index == hr.size {
 				break
 			}
@@ -80,7 +80,7 @@ func (hr *hashRoot) outputData(channel chan data.Data) {
 	for {
 		d = <-hrchan
 		if len(d.Key) == 0 {
-			index += 1
+			index++
 			if index == hr.size {
 				break
 			}
@@ -108,7 +108,7 @@ func (hr *hashRoot) init() bool {
 	}
 	hr.rbNode = make([]nodeRoot, hr.size)
 
-	for index := 0; index < hr.size; index += 1 {
+	for index := 0; index < hr.size; index++ {
 		hr.rbNode[index] = *new(nodeRoot)
 		if !hr.rbNode[index].init() {
 			return false

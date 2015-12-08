@@ -80,7 +80,7 @@ func mainloop(capts, begin int) {
 		UserName: *username,
 		PassWord: *password,
 	}
-	_, err = conn.Write(util.JsonOut(req))
+	_, err = conn.Write(util.JSONOut(req))
 	if err != nil {
 		fmt.Println("ccdb>Fatal Error " + err.Error() + "\n")
 		return
@@ -109,7 +109,7 @@ func mainloop(capts, begin int) {
 	ok := false
 	var fun func([]byte) []byte
 	for {
-		countap += 1
+		countap++
 		if countap == end {
 			break
 		}

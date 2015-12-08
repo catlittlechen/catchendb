@@ -15,7 +15,7 @@ func HandleSet(data []byte) []byte {
 		Key:   argv[1],
 		Value: argv[2],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleGet(data []byte) []byte {
@@ -27,7 +27,7 @@ func HandleGet(data []byte) []byte {
 		C:   CMD_GET,
 		Key: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleDel(data []byte) []byte {
@@ -39,7 +39,7 @@ func HandleDel(data []byte) []byte {
 		C:   CMD_DEL,
 		Key: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleSetEx(data []byte) []byte {
@@ -62,7 +62,7 @@ func HandleSetEx(data []byte) []byte {
 		StartTime: start,
 		EndTime:   end,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleDelay(data []byte) []byte {
@@ -80,7 +80,7 @@ func HandleDelay(data []byte) []byte {
 		Key:       argv[1],
 		StartTime: start,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleExpire(data []byte) []byte {
@@ -98,7 +98,7 @@ func HandleExpire(data []byte) []byte {
 		Key:     argv[1],
 		EndTime: end,
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleTTL(data []byte) []byte {
@@ -110,7 +110,7 @@ func HandleTTL(data []byte) []byte {
 		C:   CMD_TTL,
 		Key: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func HandleTTS(data []byte) []byte {
@@ -122,7 +122,7 @@ func HandleTTS(data []byte) []byte {
 		C:   CMD_TTS,
 		Key: argv[1],
 	}
-	return util.JsonOut(req)
+	return util.JSONOut(req)
 }
 
 func init() {

@@ -60,22 +60,22 @@ func LoadData() bool {
 
 	//magicKey
 	l := make([]byte, len(magicKey))
-	lens, err := fp.Read(l)
+	_, err = fp.Read(l)
 	if err != nil {
 		if err != io.EOF {
 			lgd.Errorf("file[%s] read error[%s]", filename, err)
 			return false
-		} else {
-			return true
 		}
-	} else if string(l) != magicKey {
+		return true
+	}
+	if string(l) != magicKey {
 		lgd.Errorf("file[%s] magicKey[%s]", filename, l)
 		return false
 	}
 
 	//lastModifyTime
 	l = make([]byte, timeKeyLen)
-	lens, err = fp.Read(l)
+	lens, err := fp.Read(l)
 	if err != nil {
 		lgd.Errorf("faile[%s] read error[%s]", filename, err)
 		return false
@@ -163,7 +163,7 @@ func LoadData() bool {
 	lengthBool := true
 	for {
 		l = make([]byte, length)
-		lens, err = fp.Read(l)
+		_, err = fp.Read(l)
 		if err != nil {
 			if err == io.EOF && lengthBool {
 				break
@@ -250,7 +250,7 @@ func saveData() bool {
 		datastr2 = []byte(fmt.Sprintf(printsign, len(datastr)))
 		datastrSum = append(datastrSum, datastr2...)
 		datastrSum = append(datastrSum, datastr...)
-		count += 1
+		count++
 	}
 
 	printsign = "%0" + fmt.Sprintf("%d", userKeyLen/2) + "d"
