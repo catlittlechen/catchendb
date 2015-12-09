@@ -27,9 +27,7 @@ func (pn *pageNode) allocate(n int) *page {
 
 	freenode := pn.freelist
 	for freenode != nil {
-		if freenode.rBound-freenode.lBound <= pid(n) {
-			freenode = freenode.next
-		} else {
+		if freenode.rBound-freenode.lBound > pid(n) {
 			id := freenode.lBound
 			freenode.lBound += pid(n)
 			if freenode.lBound == freenode.rBound {

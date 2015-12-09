@@ -81,7 +81,7 @@ func addUser(name, pass string, pri int) bool {
 	return true
 }
 
-func deleteUser(name string) (ret bool) {
+func deleteUser(name string) bool {
 	if _, ok := mapUser[name]; !ok {
 		return false
 	}

@@ -66,7 +66,7 @@ func ClientLogic(conn *net.TCPConn) {
 
 	privilege := user.GetPrivilege(name)
 	errRes := util.JSONOut(Rsp{
-		C: errUrlParse,
+		C: errURLParse,
 	})
 
 	tranObj := new(transaction)
@@ -157,7 +157,7 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 	err := json.Unmarshal(data, &req)
 	if err != nil {
 		lgd.Errorf("ParseQuery fail with the data %s", string(data))
-		rsp.C = errUrlParse
+		rsp.C = errURLParse
 		r = util.JSONOut(rsp)
 		return
 	}

@@ -18,15 +18,15 @@ const (
 	cmdSetEX    = "setex"
 	cmdDelAY    = "delay"
 	cmdExpire   = "expire"
-	cmdTtl      = "ttl"
-	cmdTts      = "tts"
+	cmdTTL      = "ttl"
+	cmdTTS      = "tts"
 	cmdBegin    = "begin"
 	cmdCommit   = "commit"
 	cmdRollback = "rollback"
 )
 
 const (
-	errUrlParse     = 100
+	errURLParse     = 100
 	errCmdMiss      = 101
 	errParseMiss    = 102
 	errAccessDenied = 103
@@ -40,12 +40,12 @@ const (
 	errUserMaxOnly   = 204
 	errUserMaxUser   = 205
 
-	ERR_cmdSet    = 301
-	ERR_cmdDel    = 302
-	errStartTime  = 303
-	errEndTime    = 304
-	ERR_cmdDelAY  = 305
-	ERR_cmdExpire = 306
+	errCmdSet    = 301
+	errCmdDel    = 302
+	errStartTime = 303
+	errEndTime   = 304
+	errCmdDelAY  = 305
+	errCmdExpire = 306
 
 	errTraBegin   = 401
 	errTraNoBegin = 402
