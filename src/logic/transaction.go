@@ -72,14 +72,14 @@ func (t *transaction) commit() (res int) {
 		switch tl.typ {
 		case insertType, updateType:
 			node.Put(tl.newData.Key, tl.newData.Value, tl.newData.StartTime, tl.newData.EndTime, t.ID)
-			req.C = CMD_SETEX
+			req.C = cmdSetEX
 			req.Key = tl.newData.Key
 			req.Value = tl.newData.Value
 			req.StartTime = tl.newData.StartTime
 			req.EndTime = tl.newData.EndTime
 		case deleteType:
 			node.Del(tl.newData.Key, t.ID)
-			req.C = CMD_DEL
+			req.C = cmdDel
 			req.Key = tl.newData.Key
 		}
 

@@ -24,7 +24,7 @@ func handleSet(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Put(req.Key, req.Value, 0, 0, tid) {
 		lgd.Errorf("set fail! key[%s] value[%s]", req.Key, req.Value)
-		rsp.C = ERR_CMD_SET
+		rsp.C = ERR_cmdSet
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		_, start, end := node.Get(req.Key)
@@ -72,7 +72,7 @@ func handleDel(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Del(key, tid) {
 		lgd.Errorf("del fail! key[%s]", key)
-		rsp.C = ERR_CMD_DEL
+		rsp.C = ERR_cmdDel
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		d := new(data.Data)
@@ -96,7 +96,7 @@ func handleSetEx(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Put(key, value, req.StartTime, req.EndTime, tid) {
 		lgd.Errorf("set fail! key[%s] value[%s]", key, value)
-		rsp.C = ERR_CMD_SET
+		rsp.C = ERR_cmdSet
 	}
 
 	if tranObj != nil && tranObj.isBegin() {
@@ -124,7 +124,7 @@ func handleDelay(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Set(key, req.StartTime, 0, tid) {
 		lgd.Errorf("delay fail! key[%s] startTime[%d]", key, req.StartTime)
-		rsp.C = ERR_CMD_DELAY
+		rsp.C = ERR_cmdDelAY
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		value, _, end := node.Get(key)
@@ -151,7 +151,7 @@ func handleExpire(req Req, tranObj *transaction) []byte {
 	}
 	if !node.Set(key, 0, req.EndTime, tid) {
 		lgd.Errorf("delay fail! key[%s] endTime[%d]", key, req.EndTime)
-		rsp.C = ERR_CMD_EXPIRE
+		rsp.C = ERR_cmdExpire
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		value, start, _ := node.Get(key)
@@ -219,12 +219,12 @@ func handleTTS(req Req, tranObj *transaction) []byte {
 }
 
 func initString() {
-	registerCMD(CMD_SET, 3, handleSet, typeW)
-	registerCMD(CMD_GET, 2, handleGet, typeR)
-	registerCMD(CMD_DEL, 2, handleDel, typeW)
-	registerCMD(CMD_SETEX, 5, handleSetEx, typeW)
-	registerCMD(CMD_DELAY, 3, handleDelay, typeW)
-	registerCMD(CMD_EXPIRE, 3, handleExpire, typeW)
-	registerCMD(CMD_TTL, 2, handleTTL, typeR)
-	registerCMD(CMD_TTS, 2, handleTTS, typeR)
+	registerCMD(cmdSet, 3, handleSet, typeW)
+	registerCMD(cmdGet, 2, handleGet, typeR)
+	registerCMD(cmdDel, 2, handleDel, typeW)
+	registerCMD(cmdSetEX, 5, handleSetEx, typeW)
+	registerCMD(cmdDelAY, 3, handleDelay, typeW)
+	registerCMD(cmdExpire, 3, handleExpire, typeW)
+	registerCMD(cmdTtl, 2, handleTTL, typeR)
+	registerCMD(cmdTts, 2, handleTTS, typeR)
 }

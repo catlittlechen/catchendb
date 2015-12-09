@@ -84,7 +84,7 @@ func replicationMaster(name string, conn *net.TCPConn) {
 			break
 		}
 		req = Req{
-			C:         CMD_SETEX,
+			C:         cmdSetEX,
 			Key:       d.Key,
 			Value:     d.Value,
 			StartTime: d.StartTime,
@@ -120,7 +120,7 @@ func replicationSlave() bool {
 		return false
 	}
 	req := Req{
-		C:        CMD_AUT,
+		C:        cmdAut,
 		UserName: config.GlobalConf.MasterSlave.UserName,
 		PassWord: config.GlobalConf.MasterSlave.PassWord,
 	}

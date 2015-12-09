@@ -66,7 +66,7 @@ func ClientLogic(conn *net.TCPConn) {
 
 	privilege := user.GetPrivilege(name)
 	errRes := util.JSONOut(Rsp{
-		C: ERR_URL_PARSE,
+		C: errUrlParse,
 	})
 
 	tranObj := new(transaction)
@@ -108,27 +108,27 @@ func ClientLogic(conn *net.TCPConn) {
 func clientTransactionLogic(req Req, tranObj *transaction) (normal bool, res []byte) {
 	rsp := Rsp{}
 	switch req.C {
-	case CMD_BEGIN:
+	case cmdBegin:
 		if tranObj.isBegin() {
-			rsp.C = ERR_TRA_BEGIN
+			rsp.C = errTraBegin
 		} else {
 			tranObj.init()
 		}
 		res = util.JSONOut(rsp)
 		return
-	case CMD_ROLLBACK:
+	case cmdRollback:
 		if tranObj.isBegin() {
 			rsp.C = tranObj.rollback()
 		} else {
-			rsp.C = ERR_TRA_NO_BEGIN
+			rsp.C = errTraNoBegin
 		}
 		res = util.JSONOut(rsp)
 		return
-	case CMD_COMMIT:
+	case cmdCommit:
 		if tranObj.isBegin() {
 			rsp.C = tranObj.commit()
 		} else {
-			rsp.C = ERR_TRA_NO_BEGIN
+			rsp.C = errTraNoBegin
 		}
 		res = util.JSONOut(rsp)
 		return
@@ -158,20 +158,20 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 	err := json.Unmarshal(data, &req)
 	if err != nil {
 		lgd.Errorf("ParseQuery fail with the data %s", string(data))
-		rsp.C = ERR_URL_PARSE
+		rsp.C = errUrlParse
 		r = util.JSONOut(rsp)
 		return
 	}
 	ok, name = handleUserAut(req, nil)
 	if !ok {
-		rsp.C = ERR_ACCESS_DENIED
+		rsp.C = errAccessDenied
 		r = util.JSONOut(rsp)
 		return
 	}
 	userMutex.Lock()
 	if _, ok2 := userConnection[name]; ok2 {
 		if userConnection[name] >= config.GlobalConf.MaxOnlyUserConnection {
-			rsp.C = ERR_USER_MAX_ONLY
+			rsp.C = errUserMaxOnly
 			r = util.JSONOut(rsp)
 			userMutex.Unlock()
 			return
@@ -179,7 +179,7 @@ func aut(data []byte) (ok bool, name string, r []byte) {
 		userConnection[name]++
 	} else {
 		if len(userConnection) >= config.GlobalConf.MaxUserConnection {
-			rsp.C = ERR_USER_MAX_USER
+			rsp.C = errUserMaxUser
 			r = util.JSONOut(rsp)
 			userMutex.Unlock()
 			return
