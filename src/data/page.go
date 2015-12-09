@@ -1,4 +1,4 @@
-package node
+package data
 
 import (
 	"unsafe"
@@ -6,7 +6,6 @@ import (
 
 type page struct {
 	id    pid
-	flag  uint8
 	count uint16
 	ptr   uintptr
 }
@@ -15,14 +14,15 @@ const (
 	pageHeaderSize = int(unsafe.Offsetof(((*page)(nil)).ptr))
 )
 
-func (p *page) nodeData() (nd *nodeData) {
-	nd = (*nodeData)(unsafe.Pointer(&p.ptr))
+func (p *page) nodeData() (nd *NodeData) {
+	nd = (*NodeData)(unsafe.Pointer(&p.ptr))
 	nd.ptr = p
 	return
 }
 
 type pid uint64
 
+/*
 type pids []pid
 
 func (p pids) Len() int {
@@ -36,3 +36,4 @@ func (p pids) Swap(i, j int) {
 func (p pids) Less(i, j int) bool {
 	return p[i] < p[j]
 }
+*/

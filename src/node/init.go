@@ -2,14 +2,7 @@ package node
 
 import (
 	"catchendb/src/config"
-)
-
-var (
-	pageSize int
-)
-
-const (
-	maxAlloacSize = 0xFFFFFFF
+	"catchendb/src/data"
 )
 
 func Put(key, value string, startTime, endTime int64, tranID int) bool {
@@ -38,7 +31,7 @@ func OutPut(channel chan []byte, sign []byte) {
 	iRoot.output(channel, sign)
 }
 
-func OutPutData(channel chan Data) {
+func OutPutData(channel chan data.Data) {
 	iRoot.outputData(channel)
 }
 
@@ -47,7 +40,6 @@ func InPut(line []byte) bool {
 }
 
 func Init() bool {
-	pageSize = config.GlobalConf.PageSize
 	if config.GlobalConf.MasterSlave.IsMaster {
 		return acInit()
 	}

@@ -1,13 +1,14 @@
 package logic
 
 import (
+	"catchendb/src/data"
 	"catchendb/src/node"
 	"catchendb/src/util"
 	"strconv"
 	"time"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var (
 	nowTime int64
@@ -22,17 +23,17 @@ func handleSet(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Put(req.Key, req.Value, 0, 0, tid) {
-		lgd.Error("set fail! key[%s] value[%s]", req.Key, req.Value)
-		rsp.C = ERRCMDSET
+		lgd.Errorf("set fail! key[%s] value[%s]", req.Key, req.Value)
+		rsp.C = ERR_cmdSet
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		_, start, end := node.Get(req.Key)
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = req.Key
 		d.Value = req.Value
 		d.StartTime = start
 		d.EndTime = end
-		tranObj.push(InsertType, d)
+		tranObj.push(insertType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -70,13 +71,13 @@ func handleDel(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Del(key, tid) {
-		lgd.Error("del fail! key[%s]", key)
-		rsp.C = ERRCMDDEL
+		lgd.Errorf("del fail! key[%s]", key)
+		rsp.C = ERR_cmdDel
 	}
 	if tranObj != nil && tranObj.isBegin() {
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = key
-		tranObj.push(DeleteType, d)
+		tranObj.push(deleteType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -94,18 +95,18 @@ func handleSetEx(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Put(key, value, req.StartTime, req.EndTime, tid) {
-		lgd.Error("set fail! key[%s] value[%s]", key, value)
-		rsp.C = ERRCMDSET
+		lgd.Errorf("set fail! key[%s] value[%s]", key, value)
+		rsp.C = ERR_cmdSet
 	}
 
 	if tranObj != nil && tranObj.isBegin() {
 		_, start, end := node.Get(key)
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = key
 		d.Value = value
 		d.StartTime = start
 		d.EndTime = end
-		tranObj.push(InsertType, d)
+		tranObj.push(insertType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -122,17 +123,17 @@ func handleDelay(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Set(key, req.StartTime, 0, tid) {
-		lgd.Error("delay fail! key[%s] startTime[%d]", key, req.StartTime)
-		rsp.C = ERRCMDDELAY
+		lgd.Errorf("delay fail! key[%s] startTime[%d]", key, req.StartTime)
+		rsp.C = ERR_cmdDelAY
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		value, _, end := node.Get(key)
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = key
 		d.Value = value
 		d.StartTime = req.StartTime
 		d.EndTime = end
-		tranObj.push(UpdateType, d)
+		tranObj.push(updateType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -149,17 +150,17 @@ func handleExpire(req Req, tranObj *transaction) []byte {
 		tid = tranObj.getID()
 	}
 	if !node.Set(key, 0, req.EndTime, tid) {
-		lgd.Error("delay fail! key[%s] endTime[%d]", key, req.EndTime)
-		rsp.C = ERRCMDEXPIRE
+		lgd.Errorf("delay fail! key[%s] endTime[%d]", key, req.EndTime)
+		rsp.C = ERR_cmdExpire
 	}
 	if tranObj != nil && tranObj.isBegin() {
 		value, start, _ := node.Get(key)
-		d := new(node.Data)
+		d := new(data.Data)
 		d.Key = key
 		d.Value = value
 		d.StartTime = start
 		d.EndTime = req.EndTime
-		tranObj.push(UpdateType, d)
+		tranObj.push(updateType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -218,12 +219,12 @@ func handleTTS(req Req, tranObj *transaction) []byte {
 }
 
 func initString() {
-	registerCMD(CMDSET, 3, handleSet, TypeW)
-	registerCMD(CMDGET, 2, handleGet, TypeR)
-	registerCMD(CMDDEL, 2, handleDel, TypeW)
-	registerCMD(CMDSETEX, 5, handleSetEx, TypeW)
-	registerCMD(CMDDELAY, 3, handleDelay, TypeW)
-	registerCMD(CMDEXPIRE, 3, handleExpire, TypeW)
-	registerCMD(CMDTTL, 2, handleTTL, TypeR)
-	registerCMD(CMDTTS, 2, handleTTS, TypeR)
+	registerCMD(cmdSet, 3, handleSet, typeW)
+	registerCMD(cmdGet, 2, handleGet, typeR)
+	registerCMD(cmdDel, 2, handleDel, typeW)
+	registerCMD(cmdSetEX, 5, handleSetEx, typeW)
+	registerCMD(cmdDelAY, 3, handleDelay, typeW)
+	registerCMD(cmdExpire, 3, handleExpire, typeW)
+	registerCMD(cmdTtl, 2, handleTTL, typeR)
+	registerCMD(cmdTts, 2, handleTTS, typeR)
 }

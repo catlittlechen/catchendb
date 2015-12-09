@@ -2,16 +2,17 @@ package node
 
 import (
 	"bytes"
+	"catchendb/src/data"
 	"sync"
 	"time"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 const (
-	NodeKeySmall = -1
-	NodeKeyEqual = 0
-	NodeKeyLarge = 1
+	nodeKeySmall = -1
+	nodeKeyEqual = 0
+	nodeKeyLarge = 1
 )
 
 var (
@@ -29,22 +30,22 @@ func (nr *nodeRoot) init() bool {
 }
 
 func (nr *nodeRoot) input(line []byte) bool {
-	d := Data{}
-	if !d.decode(line) {
+	d := data.Data{}
+	if !d.Decode(line) {
 		return false
 	}
 	go nr.insertNode(d.Key, d.Value, d.StartTime, d.EndTime)
 	return true
 }
 
-func (nr *nodeRoot) outputData(chanData chan Data) {
+func (nr *nodeRoot) outputData(chanData chan data.Data) {
 	nr.preorder(chanData, nr.node)
-	d := new(Data)
+	d := new(data.Data)
 	chanData <- *d
 }
 
 func (nr *nodeRoot) output(channe chan []byte, sign []byte) {
-	chanData := make(chan Data, 1000)
+	chanData := make(chan data.Data, 1000)
 	var datastr []byte
 
 	go nr.outputData(chanData)
@@ -53,16 +54,16 @@ func (nr *nodeRoot) output(channe chan []byte, sign []byte) {
 		if len(d.Key) == 0 {
 			break
 		}
-		datastr, _ = d.encode()
+		datastr, _ = d.Encode()
 		channe <- datastr
 	}
 	channe <- sign
 }
 
-func (nr *nodeRoot) preorder(channe chan Data, node *nodePageElem) {
+func (nr *nodeRoot) preorder(channe chan data.Data, node *nodePageElem) {
 
 	if node != nil {
-		d := new(Data)
+		d := new(data.Data)
 		d.Key = string(node.key())
 		d.Value = string(node.value())
 		d.StartTime = node.getStartTime()
@@ -134,15 +135,15 @@ func (nr *nodeRoot) search(key string) (node *nodePageElem) {
 
 	for node != nil {
 		switch node.compareKey(key) {
-		case NodeKeyEqual:
+		case nodeKeyEqual:
 			if node.isEnd() {
 				nr.delet(node)
-				node = nil
+				return nil
 			}
 			return node
-		case NodeKeySmall:
+		case nodeKeySmall:
 			node = node.rChild
-		case NodeKeyLarge:
+		case nodeKeyLarge:
 			node = node.lChild
 		}
 	}
@@ -290,7 +291,7 @@ func (nr *nodeRoot) insert(node *nodePageElem) {
 
 func (nr *nodeRoot) createNode(key, value string, startTime, endTime int64, parent, lChild, rChild *nodePageElem) (node *nodePageElem) {
 	node = new(nodePageElem)
-	node.data = createData(key, value, startTime, endTime)
+	node.data = data.CreateNodeData(key, value, startTime, endTime)
 	if node.data == nil {
 		return nil
 	}
@@ -315,29 +316,28 @@ func (nr *nodeRoot) insertNode(key, value string, startTime, endTime int64) bool
 			return node.setTime(startTime, endTime)
 		}
 		nodeTmp := nr.createNode(key, value, startTime, endTime, node.parent, node.lChild, node.rChild)
-		if node != nil {
-			node.lChild.parent = nodeTmp
-			node.rChild.parent = nodeTmp
-			if node.parent.lChild == node {
-				node.parent.lChild = nodeTmp
-			} else {
-				node.parent.rChild = nodeTmp
-			}
-			if node.isRed() {
-				nodeTmp.setRed()
-			}
-			node.free()
-		} else {
-			lgd.Error("reset value fail!")
+		if node == nil {
+			lgd.Errorf("reset value fail!")
 			return false
 		}
+		node.lChild.parent = nodeTmp
+		node.rChild.parent = nodeTmp
+		if node.parent.lChild == node {
+			node.parent.lChild = nodeTmp
+		} else {
+			node.parent.rChild = nodeTmp
+		}
+		if node.isRed() {
+			nodeTmp.setRed()
+		}
+		node.free()
 	}
 	if node = nr.createNode(key, value, startTime, endTime, nil, nil, nil); node != nil {
 		nr.insert(node)
-	} else {
-		lgd.Error("createNode fail!")
+		return true
 	}
-	return node != nil
+	lgd.Errorf("createNode fail!")
+	return false
 }
 
 func (nr *nodeRoot) deleteFixTree(node, parent *nodePageElem) {
@@ -495,7 +495,7 @@ type nodePageElem struct {
 	lChild    *nodePageElem
 	rChild    *nodePageElem
 	parent    *nodePageElem
-	data      *nodeData
+	data      *data.NodeData
 }
 
 func (n *nodePageElem) isRed() bool {
@@ -515,19 +515,19 @@ func (n *nodePageElem) setBlack() {
 }
 
 func (n *nodePageElem) isStart() bool {
-	return n.data.isStart()
+	return n.data.IsStart()
 }
 
 func (n *nodePageElem) isEnd() bool {
-	return n.data.isEnd()
+	return n.data.IsEnd()
 }
 
 func (n *nodePageElem) getStartTime() int64 {
-	return n.data.getStartTime()
+	return n.data.GetStartTime()
 }
 
 func (n *nodePageElem) getEndTime() int64 {
-	return n.data.getEndTime()
+	return n.data.GetEndTime()
 }
 
 func (n *nodePageElem) setTime(startTime, endTime int64) bool {
@@ -535,12 +535,12 @@ func (n *nodePageElem) setTime(startTime, endTime int64) bool {
 }
 
 func (n *nodePageElem) setStartTime(startTime int64) bool {
-	n.data.setStartTime(startTime)
+	n.data.SetStartTime(startTime)
 	return true
 }
 
 func (n *nodePageElem) setEndTime(endTime int64) bool {
-	n.data.setEndTime(endTime)
+	n.data.SetEndTime(endTime)
 	return true
 }
 
@@ -551,30 +551,30 @@ func (n *nodePageElem) compare(node *nodePageElem) bool {
 func (n *nodePageElem) compareKey(key string) int {
 	ok := bytes.Compare(n.key(), []byte(key))
 	if ok < 0 {
-		return NodeKeySmall
+		return nodeKeySmall
 	} else if ok > 0 {
-		return NodeKeyLarge
+		return nodeKeyLarge
 	}
-	return NodeKeyEqual
+	return nodeKeyEqual
 }
 
 func (n *nodePageElem) key() (key []byte) {
-	return n.data.key()
+	return n.data.Key()
 }
 
 func (n *nodePageElem) value() (value []byte) {
-	return n.data.value()
+	return n.data.Value()
 }
 
 func (n *nodePageElem) setKeyValue(key, value string) bool {
-	return n.data.setKeyValue(key, value)
+	return n.data.SetKeyValue(key, value)
 }
 
 func (n *nodePageElem) setValue(value string) bool {
-	return n.data.setValue(value)
+	return n.data.SetValue(value)
 }
 
 func (n *nodePageElem) free() {
-	n.data.free()
+	n.data.Free()
 	n.data = nil
 }

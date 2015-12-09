@@ -1,12 +1,12 @@
-package node
+package data
 
 import (
 	"time"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
-type acNodeData struct {
+type AcNodeData struct {
 	size      int
 	startTime int64
 	endTime   int64
@@ -15,47 +15,47 @@ type acNodeData struct {
 	memory    []byte
 }
 
-func createAcData(key, value string, start, end int64) (data *acNodeData) {
+func CreateAcData(key, value string, start, end int64) (data *AcNodeData) {
 	size := len(key) + len(value) + 1
 	data = globalDynamicList.acNodeData(size)
-	data.init()
-	if !data.setStartTime(start) || !data.setEndTime(end) {
-		data.free()
+	data.Init()
+	if !data.SetStartTime(start) || !data.SetEndTime(end) {
+		data.Free()
 		return nil
 	}
 
-	data.setKeyValue(key, value)
+	data.SetKeyValue(key, value)
 	return
 }
 
-func (nd *acNodeData) init() {
+func (nd *AcNodeData) Init() {
 }
 
-func (nd *acNodeData) free() {
+func (nd *AcNodeData) Free() {
 	nd.memory = nil
 }
 
-func (nd *acNodeData) getStartTime() int64 {
+func (nd *AcNodeData) GetStartTime() int64 {
 	return nd.startTime
 }
 
-func (nd *acNodeData) setStartTime(start int64) bool {
+func (nd *AcNodeData) SetStartTime(start int64) bool {
 	nd.startTime = start
 	return true
 }
 
-func (nd *acNodeData) isStart() bool {
+func (nd *AcNodeData) IsStart() bool {
 	if nd.startTime < time.Now().Unix() {
 		return true
 	}
 	return false
 }
 
-func (nd *acNodeData) getEndTime() int64 {
+func (nd *AcNodeData) GetEndTime() int64 {
 	return nd.endTime
 }
 
-func (nd *acNodeData) setEndTime(end int64) bool {
+func (nd *AcNodeData) SetEndTime(end int64) bool {
 	if end != 0 && time.Now().Unix() > end {
 		return false
 	}
@@ -63,14 +63,14 @@ func (nd *acNodeData) setEndTime(end int64) bool {
 	return true
 }
 
-func (nd *acNodeData) isEnd() bool {
+func (nd *AcNodeData) IsEnd() bool {
 	if nd.endTime != 0 && nd.endTime < time.Now().Unix() {
 		return true
 	}
 	return false
 }
 
-func (nd *acNodeData) key() (key []byte) {
+func (nd *AcNodeData) Key() (key []byte) {
 	key = make([]byte, nd.keySize)
 	if len(nd.memory) < nd.keySize {
 		lgd.Info("Debug! key %d memory %d", nd.keySize, len(nd.memory))
@@ -79,13 +79,13 @@ func (nd *acNodeData) key() (key []byte) {
 	return
 }
 
-func (nd *acNodeData) value() (value []byte) {
+func (nd *AcNodeData) Value() (value []byte) {
 	value = make([]byte, nd.valueSize)
 	copy(value, nd.memory[nd.keySize:nd.keySize+nd.valueSize])
 	return
 }
 
-func (nd *acNodeData) setKeyValue(key, value string) bool {
+func (nd *AcNodeData) SetKeyValue(key, value string) bool {
 	nd.keySize = len(key)
 	nd.valueSize = len(value)
 	copy(nd.memory[:nd.keySize], []byte(key))
@@ -93,8 +93,8 @@ func (nd *acNodeData) setKeyValue(key, value string) bool {
 	return true
 }
 
-func (nd *acNodeData) setKey(key string) bool {
-	value := nd.value()
+func (nd *AcNodeData) SetKey(key string) bool {
+	value := nd.Value()
 	nd.keySize = len(key)
 	size := nd.keySize + nd.valueSize
 	if size > nd.size {
@@ -105,7 +105,7 @@ func (nd *acNodeData) setKey(key string) bool {
 	return true
 }
 
-func (nd *acNodeData) setValue(value string) bool {
+func (nd *AcNodeData) SetValue(value string) bool {
 	size := nd.keySize + len(value)
 	if size < nd.size {
 		nd.valueSize = len(value)

@@ -19,6 +19,7 @@ func testfunc(obj []byte, t *testing.T) {
 		t.Fatal(err)
 		return
 	}
+	t.Log(obj2)
 	if !bytes.Equal(obj2, obj) {
 		t.Fatal(string(obj2))
 	}

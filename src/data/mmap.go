@@ -1,4 +1,4 @@
-package node
+package data
 
 import (
 	"sync"
@@ -31,14 +31,17 @@ func mmapSize(size int) int {
 func mmap(size int) ([]byte, error) {
 	mmapLock.Lock()
 	defer mmapLock.Unlock()
-	dataMap, err := syscall.Mmap(-1, 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_ANONYMOUS|syscall.MAP_SHARED)
+	//dataMap, err := syscall.Mmap(-1, 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_ANONYMOUS|syscall.MAP_SHARED)
+	dataMap, err := syscall.Mmap(-1, 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	return dataMap, err
 }
 
+/*
 func munmap(dataMap []byte) error {
 	err := syscall.Munmap(dataMap)
 	return err
 }
+*/
 
 func init() {
 	mmapLock = new(sync.Mutex)

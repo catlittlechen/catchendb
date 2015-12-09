@@ -1,4 +1,4 @@
-package node
+package data
 
 var globalDynamicList dynamicList
 
@@ -20,9 +20,9 @@ func (dl *dynamicList) allocateSize(size int) (sizePage int) {
 	return
 }
 
-func (dl *dynamicList) acNodeData(size int) (and *acNodeData) {
+func (dl *dynamicList) acNodeData(size int) (and *AcNodeData) {
 	size = dl.allocateSize(size)
-	and = new(acNodeData)
+	and = new(AcNodeData)
 	and.size = size
 	and.memory = make([]byte, size)
 	return

@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"catchendb/src/data"
 	"catchendb/src/node"
 	"sync"
 )
@@ -11,9 +12,9 @@ var (
 )
 
 const (
-	InsertType = 1
-	DeleteType = 2
-	UpdateType = 3
+	insertType = 1
+	deleteType = 2
+	updateType = 3
 )
 
 func getTransactionID() (id int) {
@@ -27,20 +28,20 @@ func getTransactionID() (id int) {
 type transaction struct {
 	ID         int
 	ChangeLog  []transactionLog
-	ChangeData map[string]*node.Data
+	ChangeData map[string]*data.Data
 }
 
 func (t *transaction) init() {
 	t.ID = getTransactionID()
 	t.ChangeLog = []transactionLog{}
-	t.ChangeData = make(map[string]*node.Data)
+	t.ChangeData = make(map[string]*data.Data)
 }
 
 func (t *transaction) getID() int {
 	return t.ID
 }
 
-func (t *transaction) push(typ int, newData *node.Data) {
+func (t *transaction) push(typ int, newData *data.Data) {
 	tl := transactionLog{
 		typ:     typ,
 		newData: newData,
@@ -49,7 +50,7 @@ func (t *transaction) push(typ int, newData *node.Data) {
 	t.ChangeData[newData.Key] = newData
 }
 
-func (t *transaction) getData(key string) *node.Data {
+func (t *transaction) getData(key string) *data.Data {
 	return t.ChangeData[key]
 }
 
@@ -69,16 +70,16 @@ func (t *transaction) commit() (res int) {
 	for _, tl := range t.ChangeLog {
 		req = Req{}
 		switch tl.typ {
-		case InsertType, UpdateType:
+		case insertType, updateType:
 			node.Put(tl.newData.Key, tl.newData.Value, tl.newData.StartTime, tl.newData.EndTime, t.ID)
-			req.C = CMDSETEX
+			req.C = cmdSetEX
 			req.Key = tl.newData.Key
 			req.Value = tl.newData.Value
 			req.StartTime = tl.newData.StartTime
 			req.EndTime = tl.newData.EndTime
-		case DeleteType:
+		case deleteType:
 			node.Del(tl.newData.Key, t.ID)
-			req.C = CMDDEL
+			req.C = cmdDel
 			req.Key = tl.newData.Key
 		}
 
@@ -92,9 +93,9 @@ func (t *transaction) rollback() (res int) {
 	t.ID = -2
 	for _, tl := range t.ChangeLog {
 		switch tl.typ {
-		case InsertType, UpdateType:
+		case insertType, updateType:
 			node.Put(tl.newData.Key, "", 0, 0, t.ID)
-		case DeleteType:
+		case deleteType:
 			node.Del(tl.newData.Key, t.ID)
 		}
 	}
@@ -104,7 +105,7 @@ func (t *transaction) rollback() (res int) {
 
 type transactionLog struct {
 	typ     int
-	newData *node.Data
+	newData *data.Data
 }
 
 func init() {

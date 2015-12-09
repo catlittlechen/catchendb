@@ -1,11 +1,11 @@
-package node
+package data
 
 import (
 	"sync"
 	"unsafe"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var pageListSize int
 var globalPageList pageList
@@ -41,6 +41,7 @@ func (pn *pageNode) allocate(n int) *page {
 			pn.freecount -= n
 			return p
 		}
+		freenode = freenode.next
 	}
 	return nil
 }
@@ -74,7 +75,7 @@ func (pn *pageNode) free(p *page) {
 						freenode.pre = fn
 						return
 					} else {
-						lgd.Error("Bug!")
+						lgd.Errorf("Bug!")
 					}
 				} else {
 					fn := new(freeNode)
@@ -85,7 +86,7 @@ func (pn *pageNode) free(p *page) {
 					return
 				}
 			} else {
-				lgd.Error("Bug!")
+				lgd.Errorf("Bug!")
 			}
 		} else {
 			if freenode.next != nil {
@@ -103,19 +104,17 @@ func (pn *pageNode) free(p *page) {
 			}
 		}
 	}
-	return
 }
 
 func (pn *pageNode) mmap(count uint64) bool {
 	newPageListSize := mmapSize(pageListSize)
 	pb, err := mmap(newPageListSize)
-	if err == nil {
-		pn.pagebyte = (*[mmapBranch]byte)(unsafe.Pointer(&pb[0]))
-		pageListSize = newPageListSize
-	} else {
-		lgd.Error("mmap error %s, pageListSize %d", err, newPageListSize)
+	if err != nil {
+		lgd.Errorf("mmap error %s, pageListSize %d", err, newPageListSize)
 		return false
 	}
+	pn.pagebyte = (*[mmapBranch]byte)(unsafe.Pointer(&pb[0]))
+	pageListSize = newPageListSize
 	pn.count = uint64(newPageListSize) / uint64(pageSize)
 	pn.freelist = new(freeNode)
 	pn.freelist.lBound = pid(count)
@@ -138,11 +137,10 @@ func (pl *pageList) allocate(n int) *page {
 	node := pl.head
 	for node != nil {
 		p := node.allocate(n)
-		if p == nil {
-			count += node.count
-		} else {
+		if p != nil {
 			return p
 		}
+		count += node.count
 		node = node.next
 	}
 

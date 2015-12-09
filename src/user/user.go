@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 type userInfo struct {
 	Username  string `json:"usmd"`
@@ -83,37 +83,33 @@ func addUser(name, pass string, pri int) bool {
 
 func deleteUser(name string) (ret bool) {
 	if _, ok := mapUser[name]; !ok {
-		ret = false
-	} else {
-		delete(mapUser, name)
-		ret = true
+		return false
 	}
-	return
+	delete(mapUser, name)
+	return true
 }
 
-func motifyUserInfo(name, pass string, pri int) (ret bool) {
-	ret = true
-	if u, ok := mapUser[name]; !ok {
-		ret = false
-	} else {
-		if pass != "" {
-			u.setPassword(pass)
-		} else if pri != -1 {
-			u.setPrivilege(pri)
-		} else {
-			ret = false
-		}
+func motifyUserInfo(name, pass string, pri int) bool {
+
+	u, ok := mapUser[name]
+	if !ok {
+		return false
 	}
-	return
+	if pass != "" {
+		u.setPassword(pass)
+	} else if pri != -1 {
+		u.setPrivilege(pri)
+	} else {
+		return false
+	}
+	return true
 }
 
-func getPrivilege(name string) (ret int) {
-	if u, ok := mapUser[name]; !ok {
-		ret = 0
-	} else {
-		ret = u.getPrivilege()
+func getPrivilege(name string) int {
+	if u, ok := mapUser[name]; ok {
+		return u.getPrivilege()
 	}
-	return ret
+	return 0
 }
 
 func input(line []byte) bool {

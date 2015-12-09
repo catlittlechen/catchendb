@@ -2,6 +2,7 @@ package logic
 
 import (
 	"catchendb/src/config"
+	"catchendb/src/data"
 	"catchendb/src/node"
 	"catchendb/src/util"
 	"encoding/json"
@@ -10,7 +11,7 @@ import (
 	"sync"
 )
 
-import lgd "code.google.com/p/log4go"
+import lgd "catchendb/src/log"
 
 var (
 	replicationChannel map[string]*chan Req
@@ -32,11 +33,38 @@ func deleteReplicationChannel(name string) {
 func replicationData(req Req) {
 	channelMutex.Lock()
 	for _, chans := range replicationChannel {
-		go func() {
-			(*chans) <- req
-		}()
+		go func(channel chan Req) {
+			channel <- req
+		}(*chans)
 	}
 	channelMutex.Unlock()
+}
+
+func translateData(conn *net.TCPConn, req []byte) (ok bool) {
+	var err error
+	var rsp Rsp
+	var count int
+	data := make([]byte, 1024)
+	if _, err = conn.Write(util.JSONOut(req)); err != nil {
+		lgd.Errorf("Sync Error %s", err)
+		return
+	}
+
+	if count, err = conn.Read(data); err != nil {
+		lgd.Errorf("Sync Fatal Error %s", err)
+		return
+	}
+
+	if err = json.Unmarshal(data[:count], &rsp); err != nil {
+		lgd.Errorf("Sync Fatal Error %s", err)
+		return
+	}
+
+	if rsp.C != 0 {
+		lgd.Errorf("Sync Fatal Error %s", err)
+		return
+	}
+	return true
 }
 
 func replicationMaster(name string, conn *net.TCPConn) {
@@ -46,69 +74,30 @@ func replicationMaster(name string, conn *net.TCPConn) {
 		deleteReplicationChannel(name)
 		close(channelReplication)
 	}()
-	channel := make(chan node.Data, 1000)
+	channel := make(chan data.Data, 1000)
 	go node.OutPutData(channel)
 	var req Req
-	var err error
-	var count int
-	var rsp Rsp
-	data := make([]byte, 1024)
+	var ok bool
 	for {
 		d := <-channel
 		if len(d.Key) == 0 {
 			break
 		}
 		req = Req{
-			C:         CMDSETEX,
+			C:         cmdSetEX,
 			Key:       d.Key,
 			Value:     d.Value,
 			StartTime: d.StartTime,
 			EndTime:   d.EndTime,
 		}
-		_, err = conn.Write(util.JSONOut(req))
-		if err != nil {
-			lgd.Error("Sync Error %s", err)
-			return
-		}
-		count, err = conn.Read(data)
-		if err != nil {
-			lgd.Error("Sync Fatal Error %s", err)
-			return
-		}
-
-		err = json.Unmarshal(data[:count], &rsp)
-		if err != nil {
-			lgd.Error("Sync Fatal Error %s", err)
-			return
-		}
-
-		if rsp.C != 0 {
-			lgd.Error("Sync Fatal Error %s", err)
+		if ok = translateData(conn, util.JSONOut(req)); !ok {
 			return
 		}
 	}
 	close(channel)
 	for {
 		req = <-channelReplication
-		_, err = conn.Write(util.JSONOut(req))
-		if err != nil {
-			lgd.Error("Sync Error %s", err)
-			return
-		}
-		count, err = conn.Read(data)
-		if err != nil {
-			lgd.Error("Sync Fatal Error %s", err)
-			return
-		}
-
-		err = json.Unmarshal(data[:count], &rsp)
-		if err != nil {
-			lgd.Error("Sync Fatal Error %s", err)
-			return
-
-		}
-		if rsp.C != 0 {
-			lgd.Error("Sync Fatal Error %s", err)
+		if ok = translateData(conn, util.JSONOut(req)); !ok {
 			return
 		}
 	}
@@ -121,39 +110,39 @@ func replicationSlave() bool {
 	serverHost := fmt.Sprintf("%s:%d", config.GlobalConf.MasterSlave.IP, config.GlobalConf.MasterSlave.Port)
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", serverHost)
 	if err != nil {
-		lgd.Error("Fatal Error %s", err)
+		lgd.Errorf("Fatal Error %s", err)
 		return false
 	}
 
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
-		lgd.Error("Fatal Error %s", err)
+		lgd.Errorf("Fatal Error %s", err)
 		return false
 	}
 	req := Req{
-		C:        CMDAUT,
+		C:        cmdAut,
 		UserName: config.GlobalConf.MasterSlave.UserName,
 		PassWord: config.GlobalConf.MasterSlave.PassWord,
 	}
 	_, err = conn.Write(util.JSONOut(req))
 	if err != nil {
-		lgd.Error("Fatal Error %s", err)
+		lgd.Errorf("Fatal Error %s", err)
 		return false
 	}
 	count, err := conn.Read(data)
 	if err != nil {
-		lgd.Error("Fatal Error %s", err)
+		lgd.Errorf("Fatal Error %s", err)
 		return false
 	}
 	var rsp Rsp
 	err = json.Unmarshal(data[:count], &rsp)
 	if err != nil {
-		lgd.Error("Fatal Error %s", err)
+		lgd.Errorf("Fatal Error %s", err)
 		return false
 	}
 
 	if rsp.C != 0 {
-		lgd.Error("ccdb>ERROR %d Access denied for user '%s'@'%s' (using password: YES)", rsp.C, config.GlobalConf.MasterSlave.UserName, serverHost)
+		lgd.Errorf("ccdb>ERROR %d Access denied for user '%s'@'%s' (using password: YES)", rsp.C, config.GlobalConf.MasterSlave.UserName, serverHost)
 		return false
 	}
 
@@ -169,18 +158,18 @@ func syncData(conn *net.TCPConn) {
 	for {
 		count, err = conn.Read(data)
 		if err != nil {
-			lgd.Error("Fatal Error %s", err)
+			lgd.Errorf("Fatal Error %s", err)
 			return
 		}
 		req = Req{}
 		err = json.Unmarshal(data[:count], &req)
 		if err != nil {
-			lgd.Error("Fatal Error %s", err)
+			lgd.Errorf("Fatal Error %s", err)
 			return
 		}
 		_, err = conn.Write(mapAction(req, 2, true, nil))
 		if err != nil {
-			lgd.Error("Sync Fatal Error %s", err)
+			lgd.Errorf("Sync Fatal Error %s", err)
 			return
 		}
 	}

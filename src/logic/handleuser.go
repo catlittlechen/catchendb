@@ -5,10 +5,10 @@ import (
 	"catchendb/src/util"
 )
 
-//import lgd "code.google.com/p/log4go"
+//import lgd "catchendb/src/log"
 
 func handleUserAut(req Req, tranObj *transaction) (ok bool, username string) {
-	if req.C != CMDAUT {
+	if req.C != cmdAut {
 		return
 	}
 	ok = user.VerifyPassword(req.UserName, req.PassWord)
@@ -19,7 +19,7 @@ func handleUserAut(req Req, tranObj *transaction) (ok bool, username string) {
 func handleUserAdd(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	if !user.AddUser(req.UserName, req.PassWord, req.Privilege) {
-		rsp.C = ERRUSERDUPLICATE
+		rsp.C = errUserDuplicate
 	}
 	return util.JSONOut(rsp)
 }
@@ -27,7 +27,7 @@ func handleUserAdd(req Req, tranObj *transaction) []byte {
 func handleUserDelete(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	if !user.DeleteUser(req.UserName) {
-		rsp.C = ERRUSERNOTEXIST
+		rsp.C = errUserNotExist
 	}
 	return util.JSONOut(rsp)
 }
@@ -35,7 +35,7 @@ func handleUserDelete(req Req, tranObj *transaction) []byte {
 func handleUserPass(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	if !user.MotifyUserInfo(req.UserName, req.PassWord, -1) {
-		rsp.C = ERRUSERNOTEXIST
+		rsp.C = errUserNotExist
 	}
 	return util.JSONOut(rsp)
 }
@@ -43,14 +43,14 @@ func handleUserPass(req Req, tranObj *transaction) []byte {
 func handleUserPriv(req Req, tranObj *transaction) []byte {
 	rsp := Rsp{}
 	if !user.MotifyUserInfo(req.UserName, "", req.Privilege) {
-		rsp.C = ERRUSERPRIVILEGE
+		rsp.C = errUserPrivilege
 	}
 	return util.JSONOut(rsp)
 }
 
 func initUser() {
-	registerCMD(CMDUADD, 4, handleUserAdd, TypeX)
-	registerCMD(CMDUDEL, 2, handleUserDelete, TypeX)
-	registerCMD(CMDUPAS, 3, handleUserPass, TypeX)
-	registerCMD(CMDUPRI, 3, handleUserPriv, TypeX)
+	registerCMD(cmdUadd, 4, handleUserAdd, typeX)
+	registerCMD(cmdUdel, 2, handleUserDelete, typeX)
+	registerCMD(cmdUpas, 3, handleUserPass, typeX)
+	registerCMD(cmdUpri, 3, handleUserPriv, typeX)
 }

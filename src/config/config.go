@@ -63,7 +63,10 @@ func (conf *xmlConfig) LoadConfig(filename string) bool {
 	}
 
 	fmt.Fprintf(os.Stdout, "GlobalConf:\n %+v\n", *conf)
-	fp.Close()
+	err = fp.Close()
+	if err != nil {
+		return false
+	}
 	return true
 }
 
