@@ -36,10 +36,12 @@ func mmap(size int) ([]byte, error) {
 	return dataMap, err
 }
 
+/*
 func munmap(dataMap []byte) error {
 	err := syscall.Munmap(dataMap)
 	return err
 }
+*/
 
 func init() {
 	mmapLock = new(sync.Mutex)

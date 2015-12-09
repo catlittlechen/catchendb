@@ -22,7 +22,12 @@ import lgd "catchendb/src/log"
 var configFile = flag.String("config", "../etc/config.xml", "configFile")
 var displayHelp = flag.Bool("help", false, "display HelpMessage")
 
-func handleReplicationServer(conn *net.TCPConn) {
+const (
+	typeClient      = 1
+	typeReplication = 2
+)
+
+func handleServer(typ int, conn *net.TCPConn) {
 	defer func() {
 		if re := recover(); re != nil {
 			lgd.Errorf("recover %s", re)
@@ -30,14 +35,22 @@ func handleReplicationServer(conn *net.TCPConn) {
 		}
 	}()
 	defer conn.Close()
-	logic.ReplicationLogic(conn)
+	switch typ {
+	case typeClient:
+		logic.ClientLogic(conn)
+	case typeReplication:
+		logic.ReplicationLogic(conn)
+	}
 }
 
-func replicationloop() {
-
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", config.GlobalConf.Server.ReplicationAddr)
+func serverloop(typ int) {
+	addr := config.GlobalConf.Server.BindAddr
+	if typ == typeReplication {
+		addr = config.GlobalConf.Server.ReplicationAddr
+	}
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", addr)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ResolveTCPAddr[%s] error[%s]", config.GlobalConf.Server.ReplicationAddr, err)
+		fmt.Fprintf(os.Stderr, "ResolveTCPAddr[%s] error[%s]", addr, err)
 		return
 	}
 	listener, err := net.ListenTCP("tcp", tcpAddr)
@@ -53,42 +66,7 @@ func replicationloop() {
 			return
 		}
 
-		go handleReplicationServer(conn)
-	}
-}
-
-func handleServer(conn *net.TCPConn) {
-	defer func() {
-		if re := recover(); re != nil {
-			lgd.Errorf("recover %s", re)
-			lgd.Errorf("stack %s", debug.Stack())
-		}
-	}()
-	defer conn.Close()
-	logic.ClientLogic(conn)
-}
-
-func mainloop() {
-
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", config.GlobalConf.Server.BindAddr)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "ResolveTCPAddr[%s] error[%s]", config.GlobalConf.Server.BindAddr, err)
-		return
-	}
-	listener, err := net.ListenTCP("tcp", tcpAddr)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "listenTCP[%s] error[%s]", tcpAddr, err)
-		return
-	}
-
-	for {
-		conn, err := listener.AcceptTCP()
-		if err != nil {
-			lgd.Errorf("listener Accept error[%s]", err)
-			return
-		}
-
-		go handleServer(conn)
+		go handleServer(typ, conn)
 	}
 }
 
@@ -120,7 +98,7 @@ func main() {
 	if !logic.Init() {
 		return
 	}
-	go replicationloop()
-	mainloop()
+	go serverloop(typeReplication)
+	serverloop(typeClient)
 	return
 }

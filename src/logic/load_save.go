@@ -227,7 +227,7 @@ func saveData() bool {
 		return false
 	}
 
-	printsign := "%0" + fmt.Sprintf("%d", timeKeyLen) + "d"
+	printsign := "%0" + strconv.Itoa(timeKeyLen) + "d"
 	l := fmt.Sprintf(printsign, lastModifyTime)
 	_, err = fp.Write([]byte(l))
 	if err != nil {
@@ -240,7 +240,7 @@ func saveData() bool {
 	var datastrSum, datastr, datastr2 []byte
 	channel := make(chan []byte, 1000)
 	go user.OutPut(channel, outPutSign)
-	printsign = "%0" + fmt.Sprintf("%d", lengthUser) + "d"
+	printsign = "%0" + strconv.Itoa(lengthUser) + "d"
 	for {
 		datastr = <-channel
 		if bytes.Equal(datastr, outPutSign) {
@@ -253,7 +253,7 @@ func saveData() bool {
 		count++
 	}
 
-	printsign = "%0" + fmt.Sprintf("%d", userKeyLen/2) + "d"
+	printsign = "%0" + strconv.Itoa(userKeyLen/2) + "d"
 	datastr = []byte(fmt.Sprintf(printsign+printsign, count, lengthUser))
 	datastr = append(datastr, datastrSum...)
 	_, err = fp.Write(datastr)
@@ -263,7 +263,8 @@ func saveData() bool {
 	}
 
 	go node.OutPut(channel, outPutSign)
-	datastr = []byte(fmt.Sprintf("%0"+fmt.Sprintf("%d", dataKeyLen)+"d", lengthData))
+
+	datastr = []byte(fmt.Sprintf("%0"+strconv.Itoa(dataKeyLen)+"d", lengthData))
 	_, err = fp.Write(datastr)
 	if err != nil {
 		lgd.Errorf("file[%s] write fail! err[%s]", filename, err)

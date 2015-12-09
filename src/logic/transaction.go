@@ -12,9 +12,9 @@ var (
 )
 
 const (
-	INSERT_TYPE = 1
-	DELETE_TYPE = 2
-	UPDATE_TYPE = 3
+	insertType = 1
+	deleteType = 2
+	updateType = 3
 )
 
 func getTransactionID() (id int) {
@@ -70,14 +70,14 @@ func (t *transaction) commit() (res int) {
 	for _, tl := range t.ChangeLog {
 		req = Req{}
 		switch tl.typ {
-		case INSERT_TYPE, UPDATE_TYPE:
+		case insertType, updateType:
 			node.Put(tl.newData.Key, tl.newData.Value, tl.newData.StartTime, tl.newData.EndTime, t.ID)
 			req.C = CMD_SETEX
 			req.Key = tl.newData.Key
 			req.Value = tl.newData.Value
 			req.StartTime = tl.newData.StartTime
 			req.EndTime = tl.newData.EndTime
-		case DELETE_TYPE:
+		case deleteType:
 			node.Del(tl.newData.Key, t.ID)
 			req.C = CMD_DEL
 			req.Key = tl.newData.Key
@@ -93,9 +93,9 @@ func (t *transaction) rollback() (res int) {
 	t.ID = -2
 	for _, tl := range t.ChangeLog {
 		switch tl.typ {
-		case INSERT_TYPE, UPDATE_TYPE:
+		case insertType, updateType:
 			node.Put(tl.newData.Key, "", 0, 0, t.ID)
-		case DELETE_TYPE:
+		case deleteType:
 			node.Del(tl.newData.Key, t.ID)
 		}
 	}

@@ -40,6 +40,33 @@ func replicationData(req Req) {
 	channelMutex.Unlock()
 }
 
+func translateData(conn *net.TCPConn, req []byte) (ok bool) {
+	var err error
+	var rsp Rsp
+	var count int
+	data := make([]byte, 1024)
+	if _, err = conn.Write(util.JSONOut(req)); err != nil {
+		lgd.Errorf("Sync Error %s", err)
+		return
+	}
+
+	if count, err = conn.Read(data); err != nil {
+		lgd.Errorf("Sync Fatal Error %s", err)
+		return
+	}
+
+	if err = json.Unmarshal(data[:count], &rsp); err != nil {
+		lgd.Errorf("Sync Fatal Error %s", err)
+		return
+	}
+
+	if rsp.C != 0 {
+		lgd.Errorf("Sync Fatal Error %s", err)
+		return
+	}
+	return true
+}
+
 func replicationMaster(name string, conn *net.TCPConn) {
 	channelReplication := make(chan Req, 1000)
 	addReplicationChannel(name, &channelReplication)
@@ -50,10 +77,7 @@ func replicationMaster(name string, conn *net.TCPConn) {
 	channel := make(chan data.Data, 1000)
 	go node.OutPutData(channel)
 	var req Req
-	var err error
-	var count int
-	var rsp Rsp
-	data := make([]byte, 1024)
+	var ok bool
 	for {
 		d := <-channel
 		if len(d.Key) == 0 {
@@ -66,50 +90,14 @@ func replicationMaster(name string, conn *net.TCPConn) {
 			StartTime: d.StartTime,
 			EndTime:   d.EndTime,
 		}
-		_, err = conn.Write(util.JSONOut(req))
-		if err != nil {
-			lgd.Errorf("Sync Error %s", err)
-			return
-		}
-		count, err = conn.Read(data)
-		if err != nil {
-			lgd.Errorf("Sync Fatal Error %s", err)
-			return
-		}
-
-		err = json.Unmarshal(data[:count], &rsp)
-		if err != nil {
-			lgd.Errorf("Sync Fatal Error %s", err)
-			return
-		}
-
-		if rsp.C != 0 {
-			lgd.Errorf("Sync Fatal Error %s", err)
+		if ok = translateData(conn, util.JSONOut(req)); !ok {
 			return
 		}
 	}
 	close(channel)
 	for {
 		req = <-channelReplication
-		_, err = conn.Write(util.JSONOut(req))
-		if err != nil {
-			lgd.Errorf("Sync Error %s", err)
-			return
-		}
-		count, err = conn.Read(data)
-		if err != nil {
-			lgd.Errorf("Sync Fatal Error %s", err)
-			return
-		}
-
-		err = json.Unmarshal(data[:count], &rsp)
-		if err != nil {
-			lgd.Errorf("Sync Fatal Error %s", err)
-			return
-
-		}
-		if rsp.C != 0 {
-			lgd.Errorf("Sync Fatal Error %s", err)
+		if ok = translateData(conn, util.JSONOut(req)); !ok {
 			return
 		}
 	}

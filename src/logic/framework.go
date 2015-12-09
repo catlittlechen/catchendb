@@ -8,9 +8,9 @@ import (
 import lgd "catchendb/src/log"
 
 const (
-	TYPE_R = 4
-	TYPE_W = 2
-	TYPE_X = 1
+	typeR = 4
+	typeW = 2
+	typeX = 1
 )
 
 var functionAction map[string]func(Req, *transaction) []byte
@@ -24,17 +24,17 @@ func mapAction(req Req, privilege int, replication bool, tranObj *transaction) [
 	if function, ok := functionAction[req.C]; ok {
 		typ := functionType[req.C]
 		switch typ {
-		case TYPE_R:
+		case typeR:
 			if privilege < 4 || privilege > 7 {
 				rsp.C = ERR_ACCESS_DENIED
 				return util.JSONOut(rsp)
 			}
-		case TYPE_W:
+		case typeW:
 			if (privilege/2 != 1 && privilege/2 != 3) || (!config.GlobalConf.MasterSlave.IsMaster && !replication) {
 				rsp.C = ERR_ACCESS_DENIED
 				return util.JSONOut(rsp)
 			}
-		case TYPE_X:
+		case typeX:
 			if privilege != 1 && privilege != 3 && privilege != 7 {
 				rsp.C = ERR_ACCESS_DENIED
 				return util.JSONOut(rsp)

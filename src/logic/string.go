@@ -33,7 +33,7 @@ func handleSet(req Req, tranObj *transaction) []byte {
 		d.Value = req.Value
 		d.StartTime = start
 		d.EndTime = end
-		tranObj.push(INSERT_TYPE, d)
+		tranObj.push(insertType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -77,7 +77,7 @@ func handleDel(req Req, tranObj *transaction) []byte {
 	if tranObj != nil && tranObj.isBegin() {
 		d := new(data.Data)
 		d.Key = key
-		tranObj.push(DELETE_TYPE, d)
+		tranObj.push(deleteType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -106,7 +106,7 @@ func handleSetEx(req Req, tranObj *transaction) []byte {
 		d.Value = value
 		d.StartTime = start
 		d.EndTime = end
-		tranObj.push(INSERT_TYPE, d)
+		tranObj.push(insertType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -133,7 +133,7 @@ func handleDelay(req Req, tranObj *transaction) []byte {
 		d.Value = value
 		d.StartTime = req.StartTime
 		d.EndTime = end
-		tranObj.push(UPDATE_TYPE, d)
+		tranObj.push(updateType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -160,7 +160,7 @@ func handleExpire(req Req, tranObj *transaction) []byte {
 		d.Value = value
 		d.StartTime = start
 		d.EndTime = req.EndTime
-		tranObj.push(UPDATE_TYPE, d)
+		tranObj.push(updateType, d)
 	} else {
 		go replicationData(req)
 	}
@@ -219,12 +219,12 @@ func handleTTS(req Req, tranObj *transaction) []byte {
 }
 
 func initString() {
-	registerCMD(CMD_SET, 3, handleSet, TYPE_W)
-	registerCMD(CMD_GET, 2, handleGet, TYPE_R)
-	registerCMD(CMD_DEL, 2, handleDel, TYPE_W)
-	registerCMD(CMD_SETEX, 5, handleSetEx, TYPE_W)
-	registerCMD(CMD_DELAY, 3, handleDelay, TYPE_W)
-	registerCMD(CMD_EXPIRE, 3, handleExpire, TYPE_W)
-	registerCMD(CMD_TTL, 2, handleTTL, TYPE_R)
-	registerCMD(CMD_TTS, 2, handleTTS, TYPE_R)
+	registerCMD(CMD_SET, 3, handleSet, typeW)
+	registerCMD(CMD_GET, 2, handleGet, typeR)
+	registerCMD(CMD_DEL, 2, handleDel, typeW)
+	registerCMD(CMD_SETEX, 5, handleSetEx, typeW)
+	registerCMD(CMD_DELAY, 3, handleDelay, typeW)
+	registerCMD(CMD_EXPIRE, 3, handleExpire, typeW)
+	registerCMD(CMD_TTL, 2, handleTTL, typeR)
+	registerCMD(CMD_TTS, 2, handleTTS, typeR)
 }

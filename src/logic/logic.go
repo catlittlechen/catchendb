@@ -36,71 +36,72 @@ func ReplicationLogic(conn *net.TCPConn) {
 	replicationMaster(name, conn)
 }
 
-func ClientLogic(conn *net.TCPConn) {
+func clientAuth(conn *net.TCPConn) (name string, res []byte, ok bool) {
 	data := make([]byte, 1024)
 	count, err := conn.Read(data)
 	if err != nil {
 		lgd.Errorf("read error[%s]", err)
 		return
-
 	}
-	ok, name, res := aut(data[:count])
-	_, err = conn.Write(res)
+
+	ok, name, res = aut(data[:count])
 	if !ok {
 		return
 	}
+	return
+}
 
+func ClientLogic(conn *net.TCPConn) {
+	name, res, ok := clientAuth(conn)
+	if !ok {
+		return
+	}
 	defer disConnection(name)
+
+	_, err := conn.Write(res)
 	if err != nil {
 		lgd.Warn("write error[%s]", err)
 		return
 	}
 
-	privilege := 0
+	privilege := user.GetPrivilege(name)
 	errRes := util.JSONOut(Rsp{
 		C: ERR_URL_PARSE,
 	})
+
 	tranObj := new(transaction)
+	defer func() {
+		if tranObj.isBegin() {
+			tranObj.rollback()
+		}
+	}()
+
+	data := make([]byte, 1024)
+	rdata := make([]byte, 1024)
 	var req Req
+	var count int
 	for {
-		defer func() {
-			if tranObj.isBegin() {
-				tranObj.rollback()
-			}
-		}()
 		count, err = conn.Read(data)
 		if err != nil {
 			lgd.Warn("read error[%s]", err)
 			return
 		}
 
-		req = Req{}
-		err = json.Unmarshal(data[:count], &req)
-		if err != nil {
-			lgd.Warn("ParseQuery fail with the data %s", string(data[:count]))
-			_, err = conn.Write(errRes)
-			if err != nil {
-				lgd.Warn("write error[%s]", err)
-				return
+		if err = json.Unmarshal(data[:count], &req); err == nil {
+			if ok, res = clientTransactionLogic(req, tranObj); ok {
+				rdata = mapAction(req, privilege, false, tranObj)
+			} else {
+				rdata = res
 			}
-			continue
+		} else {
+			rdata = errRes
 		}
 
-		ok, res = clientTransactionLogic(req, tranObj)
-		if !ok {
-			_, err = conn.Write(res)
-			if err != nil {
-				lgd.Warn("write error[%s]", err)
-				return
-			}
-			continue
-		}
-		privilege = user.GetPrivilege(name)
-		_, err = conn.Write(mapAction(req, privilege, false, tranObj))
-		if err != nil {
+		if _, err = conn.Write(rdata); err != nil {
 			lgd.Warn("write error[%s]", err)
 			return
 		}
+
 	}
 }
 
