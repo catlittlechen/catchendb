@@ -11,7 +11,7 @@ func HandleSet(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:     CMDSET,
+		C:     CmdSet,
 		Key:   argv[1],
 		Value: argv[2],
 	}
@@ -24,7 +24,7 @@ func HandleGet(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:   CMDGET,
+		C:   CmdGet,
 		Key: argv[1],
 	}
 	return util.JSONOut(req)
@@ -36,7 +36,7 @@ func HandleDel(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:   CMDDEL,
+		C:   CmdDel,
 		Key: argv[1],
 	}
 	return util.JSONOut(req)
@@ -56,7 +56,7 @@ func HandleSetEx(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:         CMDSETEX,
+		C:         CmdSetEX,
 		Key:       argv[1],
 		Value:     argv[2],
 		StartTime: start,
@@ -76,7 +76,7 @@ func HandleDelay(data []byte) []byte {
 	}
 
 	req := Req{
-		C:         CMDDELAY,
+		C:         CmdDelAY,
 		Key:       argv[1],
 		StartTime: start,
 	}
@@ -94,7 +94,7 @@ func HandleExpire(data []byte) []byte {
 	}
 
 	req := Req{
-		C:       CMDEXPIRE,
+		C:       CmdExpire,
 		Key:     argv[1],
 		EndTime: end,
 	}
@@ -107,7 +107,7 @@ func HandleTTL(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:   CMDTTL,
+		C:   CmdTTL,
 		Key: argv[1],
 	}
 	return util.JSONOut(req)
@@ -119,19 +119,19 @@ func HandleTTS(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:   CMDTTS,
+		C:   CmdTTS,
 		Key: argv[1],
 	}
 	return util.JSONOut(req)
 }
 
 func init() {
-	registerHandle(CMDSET, HandleSet)
-	registerHandle(CMDGET, HandleGet)
-	registerHandle(CMDDEL, HandleDel)
-	registerHandle(CMDSETEX, HandleSetEx)
-	registerHandle(CMDDELAY, HandleDelay)
-	registerHandle(CMDEXPIRE, HandleExpire)
-	registerHandle(CMDTTL, HandleTTL)
-	registerHandle(CMDTTS, HandleTTS)
+	registerHandle(CmdSet, HandleSet)
+	registerHandle(CmdGet, HandleGet)
+	registerHandle(CmdDel, HandleDel)
+	registerHandle(CmdSetEX, HandleSetEx)
+	registerHandle(CmdDelAY, HandleDelay)
+	registerHandle(CmdExpire, HandleExpire)
+	registerHandle(CmdTTL, HandleTTL)
+	registerHandle(CmdTTS, HandleTTS)
 }

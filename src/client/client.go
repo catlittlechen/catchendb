@@ -72,7 +72,7 @@ func mainloop() {
 	}
 
 	req := handle.Req{
-		C:        handle.CMDAUT,
+		C:        handle.CmdAut,
 		UserName: *username,
 		PassWord: *password,
 	}

@@ -15,7 +15,7 @@ func HandleUserAdd(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:         CMDUADD,
+		C:         CmdUAdd,
 		UserName:  argv[1],
 		PassWord:  argv[2],
 		Privilege: pri,
@@ -29,7 +29,7 @@ func handleUserDel(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:        CMDUDEL,
+		C:        CmdUDel,
 		UserName: argv[1],
 	}
 	return util.JSONOut(req)
@@ -41,7 +41,7 @@ func handleUserPas(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:        CMDUPAS,
+		C:        CmdUPas,
 		UserName: argv[1],
 	}
 	return util.JSONOut(req)
@@ -57,15 +57,15 @@ func handleUserPri(data []byte) []byte {
 		return nil
 	}
 	req := Req{
-		C:         CMDUPRI,
+		C:         CmdUPri,
 		Privilege: pri,
 	}
 	return util.JSONOut(req)
 }
 
 func init() {
-	registerHandle(CMDUADD, HandleUserAdd)
-	registerHandle(CMDUDEL, handleUserDel)
-	registerHandle(CMDUPAS, handleUserPas)
-	registerHandle(CMDUPRI, handleUserPri)
+	registerHandle(CmdUAdd, HandleUserAdd)
+	registerHandle(CmdUDel, handleUserDel)
+	registerHandle(CmdUPas, handleUserPas)
+	registerHandle(CmdUPri, handleUserPri)
 }
